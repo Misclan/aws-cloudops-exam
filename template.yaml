@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudOps Practice Exam Backend
+
+Globals:
+  HttpApi:
+    CorsConfiguration:
+      AllowMethods: 
+        - GET
+        - OPTIONS
+      AllowOrigins:
+        - "*" # In production, you'd put your actual domain here
+      AllowHeaders:
+        - Content-Type
+        - Authorization # In production, you'd specify only the headers you need
+
+Resources:
+  # The Database for your questions
+  QuestionTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: QuestionID
+        Type: String
+
+  # The Function to fetch a question
+  GetQuestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Runtime: python3.14
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref QuestionTable # This tells AWS to use the REAL name
+      Events:
+        GetQuestion:
+          Type: HttpApi # High performance, low cost
+          Properties:
+            Path: /questions
+            Method: GET
+      Policies:
+        - DynamoDBReadPolicy: # Gives the Lambda permission to read the table
+            TableName: !Ref QuestionTable
+
+  MyWebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ken-exam-app-website-v3 # New name for a fresh start
+      PublicAccessBlockConfiguration:
+        # We still need these to be false to allow the Bucket Policy to work
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyWebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${MyWebsiteBucket}/*'
+
+
+Outputs:
+  ApiEndpoint:
+    Description: "HTTP API Endpoint URL"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/questions"
+  WebsiteURL:
+    Description: "URL of the S3-hosted website"
+    Value: !GetAtt MyWebsiteBucket.WebsiteURL
+  
