@@ -340,6 +340,8 @@
                         data = JSON.parse(data);
                     }
                     
+                    console.log("Fetched Questions:", data);
+
                     // Shuffle questions
                     const shuffled = data.sort(() => Math.random() - 0.5);
                     setQuestions(shuffled);
