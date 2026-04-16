@@ -6,25 +6,16 @@
     <title>AWS CloudOps Practice Exam</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center py-12 px-4">
-    
-    <header class="text-center mb-10">
-        <h1 class="text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
-        <p class="text-slate-400">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
-    </header>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
 
-    <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700">
-        <div id="loading" class="text-center py-10">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p>Fetching questions from Cape Town...</p>
+    <main id="quiz-container" class="w-full max-w-2xl">
+        <div id="loading" class="text-center">
+            <p class="text-xl animate-pulse">Fetching CloudOps Data...</p>
         </div>
-        <div id="quiz-content" class="hidden">
-            </div>
     </main>
 
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions'; 
-
         let currentQuestions = [];
         let currentIndex = 0;
         let score = 0;
@@ -34,15 +25,14 @@
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle the stringified JSON format
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
+                // Handle double-stringified JSON if it exists
+                if (typeof data === 'string') data = JSON.parse(data);
                 
-                currentQuestions = data;
+                // Sort by QuestionID if available to keep order
+                currentQuestions = data.sort((a, b) => a.QuestionID - b.QuestionID);
                 renderQuestion();
-            } catch (error) {
-                console.error("CloudOps Error:", error);
+            } catch (err) {
+                document.getElementById('quiz-container').innerHTML = `<p class="text-red-500">API Error: ${err.message}</p>`;
             }
         }
 
@@ -50,74 +40,83 @@
             const q = currentQuestions[currentIndex];
             const container = document.getElementById('quiz-container');
             
-            // 1. Setup the UI Shell
             container.innerHTML = `
-                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
-                    <h2 class="text-2xl font-bold mb-8">${q.QuestionText}</h2>
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl">
+                    <div class="flex justify-between text-xs font-mono text-slate-500 mb-6">
+                        <span>QUESTION ${currentIndex + 1} / ${currentQuestions.length}</span>
+                        <span>SCORE: ${score}</span>
+                    </div>
+                    
+                    <h2 class="text-xl font-bold mb-8 leading-relaxed">${q.QuestionText}</h2>
+                    
                     <div id="options-list" class="space-y-4"></div>
-                    <div id="feedback-area" class="hidden mt-8 p-6 rounded-xl border-2"></div>
-                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-bold hover:bg-orange-500 transition">NEXT QUESTION</button>
+                    
+                    <div id="feedback" class="hidden mt-8 p-6 rounded-xl border-2 transition-all"></div>
+                    
+                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 hover:bg-orange-500 py-4 rounded-xl font-black transition-all" 
+                            onclick="nextQuestion()">NEXT QUESTION</button>
                 </div>
             `;
 
-            const optionsList = document.getElementById('options-list');
-
-            // 2. The Safe Injection: We don't use 'onclick' in the string!
+            const list = document.getElementById('options-list');
             q.Options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 transition-all";
-                btn.textContent = opt; // Safe way to handle quotes/apostrophes
+                btn.className = "option-btn w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 hover:border-slate-400 transition-all";
                 
-                // Use an Event Listener instead of an 'onclick' attribute
-                btn.addEventListener('click', () => {
-                    processSelection(btn, opt, q.CorrectAnswer, q.Explanation);
-                });
+                // CRITICAL: We use .textContent so the browser doesn't execute the string
+                btn.textContent = opt; 
                 
-                optionsList.appendChild(btn);
-            });
-
-            document.getElementById('next-btn').addEventListener('click', () => {
-                currentIndex++;
-                if (currentIndex < currentQuestions.length) renderQuestion();
-                else showFinal();
+                // We pass the index only, to avoid passing messy strings through functions
+                btn.onclick = () => checkAnswer(btn, opt);
+                list.appendChild(btn);
             });
         }
 
-        function processSelection(selectedBtn, selectedText, correctText, explanationText) {
-            // Disable all buttons immediately
-            document.querySelectorAll('#options-list button').forEach(b => b.disabled = true);
+        function checkAnswer(btn, selected) {
+            const q = currentQuestions[currentIndex];
+            const feedback = document.getElementById('feedback');
             
-            const feedback = document.getElementById('feedback-area');
+            // Lock buttons
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             feedback.classList.remove('hidden');
 
-            if (selectedText === correctText) {
+            const isCorrect = selected === q.CorrectAnswer;
+
+            if (isCorrect) {
                 score++;
-                selectedBtn.classList.add('border-green-500', 'bg-green-900/30', 'text-green-400');
-                feedback.className = "mt-8 p-6 rounded-xl border-2 border-green-500/50 bg-green-500/10 text-green-100";
-                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-green-400">✅ Correct!</p>`;
+                btn.className = "option-btn w-full text-left p-4 rounded-xl border-2 border-green-500 bg-green-500/10 text-green-400";
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-green-500/50 bg-green-900/30 text-green-100";
+                feedback.innerHTML = `<p class="font-bold text-lg mb-2 text-green-400">✅ Correct!</p>`;
             } else {
-                selectedBtn.classList.add('border-red-500', 'bg-red-900/30', 'text-red-400');
-                feedback.className = "mt-8 p-6 rounded-xl border-2 border-red-500/50 bg-red-500/10 text-red-100";
-                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-red-400">❌ Incorrect.</p>
-                                    <p class="text-sm opacity-80 mb-2">Answer: ${correctText}</p>`;
+                btn.className = "option-btn w-full text-left p-4 rounded-xl border-2 border-red-500 bg-red-900/10 text-red-400";
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-red-500/50 bg-red-900/30 text-red-100";
+                feedback.innerHTML = `<p class="font-bold text-lg mb-2 text-red-400">❌ Incorrect.</p>
+                                      <p class="text-sm mb-2 opacity-80">Correct Answer: <span class="font-bold">${q.CorrectAnswer}</span></p>`;
             }
 
-            // This will finally show the explanation because it's handled as a variable, not HTML text
-            feedback.innerHTML += `<div class="mt-4 pt-4 border-t border-slate-600 italic text-slate-300">
-                                        <strong>Why?</strong> ${explanationText}
-                                </div>`;
-            
+            // The Explanation is injected safely via textContent to prevent crashes
+            const whyDiv = document.createElement('div');
+            whyDiv.className = "mt-4 pt-4 border-t border-slate-600 text-sm italic text-slate-300";
+            whyDiv.innerHTML = `<strong>Why?</strong> `;
+            const textNode = document.createTextNode(q.Explanation);
+            whyDiv.appendChild(textNode);
+            feedback.appendChild(whyDiv);
+
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
-        function showFinal() {
-            document.getElementById('quiz-container').innerHTML = `
-                <div class="text-center p-10 bg-slate-800 rounded-2xl border border-slate-700">
-                    <h2 class="text-3xl font-bold mb-4">Exam Complete</h2>
-                    <p class="text-5xl text-orange-500 font-bold mb-8">${score} / ${currentQuestions.length}</p>
-                    <button onclick="location.reload()" class="bg-slate-700 px-8 py-3 rounded-lg">Try Again</button>
-                </div>
-            `;
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < currentQuestions.length) renderQuestion();
+            else {
+                document.getElementById('quiz-container').innerHTML = `
+                    <div class="text-center bg-slate-800 p-12 rounded-2xl border border-slate-700">
+                        <h2 class="text-3xl font-bold mb-4">Exam Complete</h2>
+                        <p class="text-5xl text-orange-500 font-bold">${score} / ${currentQuestions.length}</p>
+                        <button onclick="location.reload()" class="mt-8 bg-slate-700 px-8 py-3 rounded-lg">Restart</button>
+                    </div>
+                `;
+            }
         }
 
         fetchQuestions();
