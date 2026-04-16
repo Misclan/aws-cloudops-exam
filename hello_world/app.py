@@ -2,37 +2,33 @@ import json
 import boto3
 import os
 
-# Use the environment variable set by your SAM/CloudFormation template
-TABLE_NAME = os.environ.get('TABLE_NAME')
+# Use the exact table name from your SAM/CloudFormation
+TABLE_NAME = os.environ.get('TABLE_NAME', 'exam-app-backend-QuestionTable-TJKB2EPIJNK2')
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(TABLE_NAME)
 
 def lambda_handler(event, context):
     try:
-        # 1. Pull all items from DynamoDB
+        # 1. Get the data
         response = table.scan()
         items = response.get('Items', [])
 
-        # 2. Return the standard AWS Proxy Response
+        # 2. Return EXACTLY what React fetch() needs
         return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*", # Matches your HTML's fetch needs
-                "Access-Control-Allow-Headers": "Content-Type",
-                "Access-Control-Allow-Methods": "GET,OPTIONS"
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type"
             },
-            # This turns your Python list into a valid JSON array for React
+            # This must be a raw JSON string of the list
             "body": json.dumps(items)
         }
-        
     except Exception as e:
-        print(f"Error scanning table: {str(e)}")
+        print(f"Error: {str(e)}")
         return {
             "statusCode": 500,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            "body": json.dumps({"error": "Internal Server Error", "details": str(e)})
+            "headers": { "Access-Control-Allow-Origin": "*" },
+            "body": json.dumps({"error": str(e)})
         }
