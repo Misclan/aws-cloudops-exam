@@ -30,6 +30,7 @@ print("Upload complete!")
 
 #alternatively if you want to generate unique IDs automatically, you can use the uuid library as shown below:
 import boto3
+import json
 import uuid
 
 dynamodb = boto3.resource('dynamodb', region_name='af-south-1')
