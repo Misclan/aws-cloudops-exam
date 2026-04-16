@@ -31,7 +31,7 @@
         let currentIndex = 0;
 
         async function fetchQuestions() {
-            const response = await fetch('YOUR_API_ENDPOINT_HERE');
+            const response = await fetch(API_URL);
             currentQuestions = await response.json();
             showQuestion();
         }
