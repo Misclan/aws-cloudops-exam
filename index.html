@@ -26,11 +26,10 @@
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle double-stringified data from Lambda
+                // Handle double-stringified JSON
                 if (typeof data === 'string') data = JSON.parse(data);
                 
-                // Sort sequentially to fix the "weird ordering"
-                currentQuestions = data.sort((a, b) => a.QuestionID - b.QuestionID);
+                currentQuestions = data;
                 renderQuestion();
             } catch (error) {
                 console.error("Fetch failed:", error);
@@ -41,42 +40,38 @@
             const q = currentQuestions[currentIndex];
             const container = document.getElementById('quiz-container');
             
-            // 1. Reset container with a safe shell
+            // Create a clean UI shell
             container.innerHTML = `
                 <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl">
-                    <h2 id="q-text" class="text-xl font-bold mb-8 leading-relaxed"></h2>
-                    <div id="options-grid" class="space-y-4"></div>
-                    <div id="feedback-box" class="hidden mt-8 p-6 rounded-xl border-2"></div>
+                    <h2 id="question-text" class="text-xl font-bold mb-8 leading-relaxed"></h2>
+                    <div id="options-list" class="space-y-4"></div>
+                    <div id="feedback-area" class="hidden mt-8 p-6 rounded-xl border-2"></div>
                     <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-black">NEXT QUESTION</button>
                 </div>
             `;
 
-            // 2. Safely set question text (prevents SyntaxErrors)
-            document.getElementById('q-text').textContent = q.QuestionText;
+            // Safely set text using textContent (this ignores all syntax errors)
+            document.getElementById('question-text').textContent = q.QuestionText;
 
-            const optionsGrid = document.getElementById('options-grid');
+            const optionsList = document.getElementById('options-list');
             q.Options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 transition-all";
                 
-                // Use textContent so the browser doesn't execute 'Principal': {'AWS': ...}
+                // This is the key: textContent treats the option as pure text, not code
                 btn.textContent = opt; 
                 
-                btn.onclick = () => validateSelection(btn, opt, q.CorrectAnswer, q.Explanation);
-                optionsGrid.appendChild(btn);
+                // Use an event listener so we aren't passing strings through HTML
+                btn.addEventListener('click', () => handleSelection(btn, opt, q.CorrectAnswer, q.Explanation));
+                optionsList.appendChild(btn);
             });
-
-            document.getElementById('next-btn').onclick = () => {
-                currentIndex++;
-                if (currentIndex < currentQuestions.length) renderQuestion();
-                else showFinal();
-            };
         }
 
-        function validateSelection(selectedBtn, selectedText, correctText, explanationText) {
-            document.querySelectorAll('#options-grid button').forEach(b => b.disabled = true);
+        function handleSelection(selectedBtn, selectedText, correctText, explanationText) {
+            // Disable all buttons to prevent double-clicking
+            document.querySelectorAll('#options-list button').forEach(b => b.disabled = true);
             
-            const feedback = document.getElementById('feedback-box');
+            const feedback = document.getElementById('feedback-area');
             feedback.classList.remove('hidden');
 
             if (selectedText === correctText) {
@@ -91,24 +86,30 @@
                                     <p class="text-sm opacity-80 mb-2">The answer was: ${correctText}</p>`;
             }
 
-            // 3. SAFE Explanation Injection
-            const explainDiv = document.createElement('div');
-            explainDiv.className = "mt-4 pt-4 border-t border-slate-600 text-sm italic text-slate-300";
-            explainDiv.innerHTML = `<strong>Why?</strong> `;
-            
-            const textNode = document.createTextNode(explanationText); // The ultimate fix
-            explainDiv.appendChild(textNode);
-            feedback.appendChild(explainDiv);
+            // Safely add the explanation text
+            const expDiv = document.createElement('div');
+            expDiv.className = "mt-4 pt-4 border-t border-slate-600 text-sm italic text-slate-300";
+            expDiv.innerHTML = `<strong>Why?</strong> `;
+            expDiv.appendChild(document.createTextNode(explanationText));
+            feedback.appendChild(expDiv);
 
-            document.getElementById('next-btn').classList.remove('hidden');
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.classList.remove('hidden');
+            nextBtn.onclick = () => {
+                currentIndex++;
+                if (currentIndex < currentQuestions.length) renderQuestion();
+                else showResult();
+            };
         }
 
-        function showFinal() {
-            document.getElementById('quiz-container').innerHTML = `<div class="text-center p-12 bg-slate-800 rounded-2xl border border-slate-700">
-                <h2 class="text-3xl font-bold mb-4 text-orange-500">Exam Complete</h2>
-                <p class="text-6xl font-black">${score} / ${currentQuestions.length}</p>
-                <button onclick="location.reload()" class="mt-8 bg-slate-700 px-8 py-3 rounded-lg">RESTART</button>
-            </div>`;
+        function showResult() {
+            document.getElementById('quiz-container').innerHTML = `
+                <div class="text-center p-12 bg-slate-800 rounded-2xl border border-slate-700">
+                    <h2 class="text-3xl font-bold mb-4">Exam Complete</h2>
+                    <p class="text-6xl font-black text-orange-500">${score} / ${currentQuestions.length}</p>
+                    <button onclick="location.reload()" class="mt-8 bg-slate-700 px-8 py-3 rounded-lg">Try Again</button>
+                </div>
+            `;
         }
 
         fetchQuestions();
