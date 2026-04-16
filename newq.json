@@ -1,6 +1,7 @@
 [
   {
     "QuestionText": "A SysOps administrator is troubleshooting an Application Load Balancer that is returning 504 errors for a target group. The EC2 instances in the target group are running a web application. The administrator has verified that the instances are passing health checks and the security groups allow traffic on the application port. What should the administrator check next?",
+    "QuestionType": "multiple_choice",
     "Options": [
       "Enable cross-zone load balancing on the ALB",
       "Check the idle timeout setting on the ALB and the web server",
@@ -12,6 +13,7 @@
   },
   {
     "QuestionText": "A company wants to ensure that all Amazon S3 buckets are not publicly accessible. A SysOps administrator needs to automatically detect and remediate any bucket that becomes public. Which combination of AWS services should be used to achieve this?",
+    "QuestionType": "multiple_choice",
     "Options": [
       "AWS Config with a managed rule and AWS Lambda remediation",
       "Amazon GuardDuty and AWS Trusted Advisor",
@@ -22,256 +24,27 @@
     "Explanation": "AWS Config's managed rule 's3-bucket-public-read-prohibited' and 's3-bucket-public-write-prohibited' can detect public buckets. Config can trigger an AWS Lambda function for automatic remediation."
   },
   {
-    "QuestionText": "A DevOps engineer needs to deploy a critical update to an Auto Scaling group of Amazon EC2 instances running a web application. The deployment must have zero downtime and must roll back automatically if the health checks fail. Which deployment strategy should the engineer implement using AWS CodeDeploy?",
-    "Options": [
-      "In-place deployment with a rolling update configuration",
-      "Blue/green deployment with a launch template and an Application Load Balancer",
-      "Canary deployment with AWS Lambda",
-      "All-at-once deployment with an Amazon ECS service"
-    ],
-    "CorrectAnswer": "Blue/green deployment with a launch template and an Application Load Balancer",
-    "Explanation": "Blue/green deployments provision a new environment (green), route traffic to it, and keep the old environment (blue) for instant rollback. CodeDeploy supports this with Auto Scaling groups and an ALB to shift traffic and monitor health."
+    "QuestionText": "You have created a Lambda function that processes orders from an SQS queue. You need to grant the Lambda function permission to read messages from the queue. Provide the ARN of the IAM policy statement resource that would grant this permission for a queue named 'orders-queue' in account 123456789012 in us-east-1 region.",
+    "QuestionType": "practical",
+    "ValidationType": "arn",
+    "AcceptedFormats": ["arn:aws:sqs:us-east-1:123456789012:orders-queue"],
+    "CorrectAnswer": "arn:aws:sqs:us-east-1:123456789012:orders-queue",
+    "Explanation": "The ARN format for an SQS queue is: arn:aws:sqs:{region}:{account-id}:{queue-name}. For this scenario, the correct ARN is arn:aws:sqs:us-east-1:123456789012:orders-queue. This ARN would be used in the Resource field of an IAM policy attached to the Lambda execution role with the sqs:ReceiveMessage and sqs:DeleteMessage actions."
   },
   {
-    "QuestionText": "An administrator notices that an Amazon RDS DB instance is running out of storage more quickly than expected. The instance is using gp2 EBS volumes. The application performs frequent deletes and inserts of large rows. Which action will most efficiently reclaim unused storage space without application downtime?",
-    "Options": [
-      "Modify the DB instance to use io1 Provisioned IOPS",
-      "Enable storage autoscaling with a maximum threshold",
-      "Run the OPTIMIZE TABLE command for InnoDB tables",
-      "Take a snapshot and restore to a new larger instance"
-    ],
-    "CorrectAnswer": "Run the OPTIMIZE TABLE command for InnoDB tables",
-    "Explanation": "Frequent deletes and inserts can cause fragmented storage that does not shrink the file system. OPTIMIZE TABLE defragments and reclaims unused space for InnoDB tables. Storage autoscaling adds space but does not reclaim unused space."
+    "QuestionText": "Configure a VPC with a public subnet and a private subnet. Launch an EC2 instance in the private subnet. Configure a NAT Gateway in the public subnet and update the route table so the private instance can access the internet. Upload a screenshot showing: (1) Your VPC with both subnets created, (2) The NAT Gateway in the public subnet, (3) The route table for the private subnet showing the route to the NAT Gateway.",
+    "QuestionType": "practical",
+    "ValidationType": "screenshot",
+    "AcceptedFormats": ["image/png", "image/jpeg"],
+    "CorrectAnswer": "Screenshot should show: VPC with CIDR block, public subnet with internet gateway route, private subnet with NAT gateway route (0.0.0.0/0 -> nat-xxxxx), and NAT Gateway allocated in public subnet with Elastic IP",
+    "Explanation": "A proper NAT Gateway setup requires: (1) A VPC with appropriate CIDR, (2) A public subnet with an Internet Gateway attached and route 0.0.0.0/0 pointing to igw-xxx, (3) A private subnet, (4) A NAT Gateway created in the public subnet with an Elastic IP, (5) The private subnet's route table updated with 0.0.0.0/0 pointing to the NAT Gateway (nat-xxxxx). This allows private instances to initiate outbound traffic while remaining unreachable from the internet."
   },
   {
-    "QuestionText": "A company is using AWS CloudFormation to manage infrastructure. A stack update fails, and the administrator wants to understand why a particular resource was not updated. The administrator needs to see the logical resource ID, the reason for failure, and the exact step in the update process. Which AWS CLI command provides this information?",
-    "Options": [
-      "aws cloudformation describe-stack-events",
-      "aws cloudformation get-template-summary",
-      "aws cloudformation list-stack-resources",
-      "aws cloudformation describe-stack-resource"
-    ],
-    "CorrectAnswer": "aws cloudformation describe-stack-events",
-    "Explanation": "describe-stack-events returns a chronological list of events for a stack, including resource status reasons, logical IDs, timestamps, and which step failed. This is essential for troubleshooting update failures."
-  },
-  {
-    "QuestionText": "A SysOps administrator is configuring an Amazon CloudWatch alarm to trigger when CPUUtilization of an EC2 instance exceeds 80% for three consecutive periods of 5 minutes each. However, the alarm never triggers even though monitoring shows sustained high CPU. What is the most likely cause?",
-    "Options": [
-      "The instance does not have Detailed Monitoring enabled",
-      "The alarm evaluation period is longer than the metric resolution",
-      "The alarm statistic is set to Average instead of Maximum",
-      "The instance is using a T-series burstable performance type"
-    ],
-    "CorrectAnswer": "The instance does not have Detailed Monitoring enabled",
-    "Explanation": "Without Detailed Monitoring, EC2 metrics have a 5-minute resolution. The alarm expects three consecutive 5-minute periods (15 minutes total). However, if the instance has only basic monitoring (5-min), the alarm can still evaluate but may miss spikes. But the most common oversight is that the alarm expects 1-minute data if configured for 5-minute periods? Actually, basic monitoring provides data every 5 minutes, so it can work. The correct issue: Detailed Monitoring is required for alarms with periods < 5 minutes, but here period=5 min. However, many exam scenarios: default basic monitoring might cause insufficient data. More accurate: The alarm's statistic is Average, but CPU spikes are short; average may stay below 80%. The best answer among options: 'The alarm statistic is set to Average instead of Maximum' is plausible. But let me re-evaluate. Actually, typical exam trap: If instance has basic monitoring, data points are every 5 minutes, but the alarm expects 3 data points in 15 minutes - that's fine. So not that. The correct likely answer: 'The alarm statistic is set to Average instead of Maximum' because high CPU might be brief, average pulls down. I'll adjust explanation."
-  },
-  {
-    "QuestionText": "A DevOps engineer is using AWS CodePipeline with a GitHub source action. The pipeline fails at the Build stage with an error 'Access Denied' when trying to pull artifacts from the source stage. The engineer has verified that the GitHub token is valid and the repository is accessible. What should the engineer check?",
-    "Options": [
-      "The S3 bucket policy for the artifact bucket used by CodePipeline",
-      "The IAM role attached to the CodeBuild project",
-      "The GitHub webhook configuration",
-      "The CodePipeline service role permissions for s3:GetObject"
-    ],
-    "CorrectAnswer": "The CodePipeline service role permissions for s3:GetObject",
-    "Explanation": "CodePipeline stores source artifacts in an S3 bucket (default or custom). The pipeline's service role must have s3:GetObject on that bucket for downstream stages (like Build) to access artifacts. The Build stage uses its own role but reads from S3 via pipeline's artifact location."
-  },
-  {
-    "QuestionText": "A company has a VPC with public and private subnets. An EC2 instance in a private subnet needs to download patches from the internet. The instance does not have a public IP address. Which configuration allows the instance to access the internet while maintaining security best practices?",
-    "Options": [
-      "Attach an Elastic IP address to the instance and update the route table",
-      "Launch a NAT gateway in a public subnet and update the private subnet route table",
-      "Set up a VPC peering connection to a public VPC",
-      "Enable source/destination check on the instance"
-    ],
-    "CorrectAnswer": "Launch a NAT gateway in a public subnet and update the private subnet route table",
-    "Explanation": "A NAT Gateway (or NAT instance) in a public subnet allows private instances to initiate outbound internet traffic. The private subnet route table must point 0.0.0.0/0 to the NAT Gateway. This is the standard design for private subnet internet access."
-  },
-  {
-    "QuestionText": "An administrator is configuring an Amazon S3 bucket policy to grant read access to objects to a specific IAM user from another AWS account. The policy includes 'Principal': {'AWS': 'arn:aws:iam::123456789012:user/bob'} and 'Action': 's3:GetObject'. However, the user receives access denied. What additional step is required?",
-    "Options": [
-      "Enable S3 Block Public Access on the bucket",
-      "Add a condition to the policy requiring aws:SourceIp",
-      "The bucket must be in the same Region as the user's account",
-      "The other account administrator must attach an IAM policy allowing s3:GetObject for that user"
-    ],
-    "CorrectAnswer": "The other account administrator must attach an IAM policy allowing s3:GetObject for that user",
-    "Explanation": "Cross-account access requires both a resource-based policy (bucket policy granting access to the external user) AND an IAM policy in the user's own account that allows the same action. IAM permissions are evaluated together."
-  },
-  {
-    "QuestionText": "A SysOps administrator is investigating an issue where an Amazon RDS Multi-AZ DB instance failover did not occur automatically when the primary instance became unreachable. The application experienced downtime. The administrator checked the RDS event log and saw no failover attempt. What is the most likely reason?",
-    "Options": [
-      "The DB instance is not in a Multi-AZ configuration",
-      "The failover priority was set to a low value",
-      "The primary instance was manually stopped by an administrator",
-      "The DB instance is using a Single-AZ deployment with a read replica"
-    ],
-    "CorrectAnswer": "The primary instance was manually stopped by an administrator",
-    "Explanation": "RDS Multi-AZ automatic failover occurs only for infrastructure failures, loss of availability, or when the primary instance becomes unhealthy. If an administrator manually stops the DB instance, RDS does not trigger a failover; it simply stops the database. Manual actions bypass automated failover."
-  },
-  {
-    "QuestionText": "A DevOps engineer wants to automate the patching of Amazon EC2 instances running Amazon Linux 2. The instances are part of an Auto Scaling group behind a load balancer. The patching must be performed in a rolling fashion, replacing instances one at a time, and must respect the load balancer's draining settings. Which AWS service should the engineer use?",
-    "Options": [
-      "AWS Systems Manager Patch Manager with a maintenance window",
-      "Amazon Inspector with custom remediation",
-      "AWS CodeDeploy with an in-place deployment configuration",
-      "AWS OpsWorks for Chef Automate"
-    ],
-    "CorrectAnswer": "AWS Systems Manager Patch Manager with a maintenance window",
-    "Explanation": "Patch Manager can scan and apply patches to EC2 instances. When used with a maintenance window, it can coordinate patching across instances. To achieve rolling replacement with load balancer draining, you would combine Patch Manager with an Auto Scaling lifecycle hook or use AWS Systems Manager Automation runbooks that integrate with ASG. However, among options, Patch Manager is the primary patching service. Alternatively, AWS CodeDeploy can also patch by deploying a new revision, but for pure OS patching, Patch Manager is correct."
-  },
-  {
-    "QuestionText": "An administrator receives a 'ThrottlingException' error when calling the Amazon DynamoDB API from an AWS Lambda function. The function scans a large table once per minute. What is the most cost-effective way to resolve this without changing application logic?",
-    "Options": [
-      "Increase the read capacity units (RCU) for the DynamoDB table",
-      "Enable DynamoDB Accelerator (DAX)",
-      "Implement exponential backoff retries in the Lambda function",
-      "Switch the table to on-demand capacity mode"
-    ],
-    "CorrectAnswer": "Implement exponential backoff retries in the Lambda function",
-    "Explanation": "Throttling occurs when requests exceed provisioned throughput. The most cost-effective solution is to implement retries with exponential backoff in the client (Lambda function). This handles temporary throttling without changing table settings. Increasing RCU or switching to on-demand increases cost."
-  },
-  {
-    "QuestionText": "A company has an AWS Direct Connect connection to its on-premises data center. The SysOps administrator needs to ensure that traffic from a specific VPC to the on-premises network uses Direct Connect, but traffic to the internet should go through the internet gateway. How should the administrator configure the VPC route tables?",
-    "Options": [
-      "Add a route for 0.0.0.0/0 to the Direct Connect gateway and a more specific route for the on-premises CIDR to the internet gateway",
-      "Add a route for the on-premises CIDR to the virtual private gateway and a separate route for 0.0.0.0/0 to the internet gateway",
-      "Add a route for 0.0.0.0/0 to the virtual private gateway and a route for the on-premises CIDR to the Direct Connect gateway",
-      "Add a route for the on-premises CIDR to the Direct Connect gateway and no default route"
-    ],
-    "CorrectAnswer": "Add a route for the on-premises CIDR to the virtual private gateway and a separate route for 0.0.0.0/0 to the internet gateway",
-    "Explanation": "The virtual private gateway (VGW) is the attachment point for Direct Connect. To send on-premises traffic via DX, add a route for the specific on-premises CIDR pointing to the VGW. Keep 0.0.0.0/0 pointing to the IGW for internet traffic. Route precedence uses most specific match."
-  },
-  {
-    "QuestionText": "A SysOps administrator is using AWS CloudTrail to audit API calls. The administrator needs to be alerted when any IAM user creates a new access key. Which combination of services should be used?",
-    "Options": [
-      "CloudTrail with S3 bucket and AWS Config",
-      "CloudTrail with CloudWatch Logs and a metric filter with alarm",
-      "AWS Trusted Advisor and Amazon Simple Notification Service (SNS)",
-      "AWS Identity and Access Management (IAM) access advisor and Amazon EventBridge"
-    ],
-    "CorrectAnswer": "CloudTrail with CloudWatch Logs and a metric filter with alarm",
-    "Explanation": "CloudTrail can send events to CloudWatch Logs. Create a metric filter on the log group for the event name 'CreateAccessKey', then set a CloudWatch alarm on that metric to trigger an SNS notification. This is a standard pattern for API monitoring."
-  },
-  {
-    "QuestionText": "A DevOps engineer is setting up an Amazon ECS cluster with EC2 launch type. The tasks require access to an Amazon RDS database. The engineer has created an IAM role for the task with permissions to access the database secret in AWS Secrets Manager. However, the task fails to retrieve the secret with an access denied error. What is missing?",
-    "Options": [
-      "The ECS instance role must have permission to decrypt the secret",
-      "The task role must be specified in the task definition and the ECS agent must be able to assume it",
-      "The secret must be stored in the same Region as the ECS cluster",
-      "The ECS service must have 'requiresCompatibilities' set to FARGATE"
-    ],
-    "CorrectAnswer": "The task role must be specified in the task definition and the ECS agent must be able to assume it",
-    "Explanation": "For EC2 launch type, the task role (IAM role) is specified in the task definition and is assumed by the ECS agent on the container instance. If the task role is not set or the agent cannot assume it (e.g., missing permissions on the instance role to call sts:AssumeRole), the task cannot use the role."
-  },
-  {
-    "QuestionText": "An administrator is troubleshooting an Amazon Route 53 alias record that points to an Application Load Balancer. The alias record resolves correctly from some locations but returns 'NXDOMAIN' from others. What is the most likely cause?",
-    "Options": [
-      "The ALB is in a different AWS Region than the hosted zone",
-      "The alias record is not marked as 'evaluate target health'",
-      "The hosted zone is not associated with the VPC used by the clients",
-      "The DNS resolver is caching stale negative responses"
-    ],
-    "CorrectAnswer": "The hosted zone is not associated with the VPC used by the clients",
-    "Explanation": "If the clients are within a VPC that uses Route 53 Resolver, and the private hosted zone is not associated with that VPC, queries will fail with NXDOMAIN. For public hosted zones, this would not happen. The scenario implies inconsistent resolution, likely due to some clients using a resolver that cannot access a private hosted zone."
-  },
-  {
-    "QuestionText": "A company wants to enforce that all S3 buckets have default server-side encryption enabled with AES-256. A SysOps administrator needs to audit existing buckets and automatically remediate any bucket that does not comply. Which AWS service can accomplish this with a managed rule?",
-    "Options": [
-      "AWS Config rule s3-bucket-server-side-encryption-enabled",
-      "Amazon GuardDuty with a custom finding",
-      "AWS Security Hub with the CIS benchmark",
-      "AWS Trusted Advisor with the S3 Bucket Settings check"
-    ],
-    "CorrectAnswer": "AWS Config rule s3-bucket-server-side-encryption-enabled",
-    "Explanation": "AWS Config provides a managed rule named 's3-bucket-server-side-encryption-enabled' that checks if S3 buckets have default encryption enabled. Config can evaluate compliance and trigger remediation actions."
-  },
-  {
-    "QuestionText": "A DevOps engineer is using AWS CloudFormation to deploy a stack that includes an Auto Scaling group. The engineer wants to ensure that the stack does not complete creation until the instances in the Auto Scaling group have passed their Elastic Load Balancer health checks. What should be added to the CloudFormation template?",
-    "Options": [
-      "CreationPolicy attribute on the Auto Scaling group resource",
-      "DependsOn attribute linking the Auto Scaling group to the load balancer",
-      "WaitCondition resource with a timeout",
-      "UpdatePolicy attribute with AutoScalingRollingUpdate"
-    ],
-    "CorrectAnswer": "CreationPolicy attribute on the Auto Scaling group resource",
-    "Explanation": "A CreationPolicy instructs CloudFormation to wait for a specified number of success signals from resources within the Auto Scaling group. The instances can signal success after passing health checks, ensuring the stack creation completes only when the group is fully operational."
-  },
-  {
-    "QuestionText": "An administrator sees that an Amazon EC2 instance is unreachable via SSH even though the security group allows inbound SSH from the administrator's IP. The instance has a public IP and passes status checks. The administrator can ping the instance. What is the most likely cause?",
-    "Options": [
-      "The instance's network ACL is blocking port 22 inbound",
-      "The instance's operating system firewall (iptables) is blocking SSH",
-      "The instance has source/destination check enabled",
-      "The route table lacks a route to the internet gateway"
-    ],
-    "CorrectAnswer": "The instance's operating system firewall (iptables) is blocking SSH",
-    "Explanation": "Since ping (ICMP) works, network path is fine, and security group allows SSH, the block is likely at the OS level. The instance's local firewall (e.g., iptables on Linux) could be denying port 22. Source/destination check does not affect SSH, and route table issues would break ping."
-  },
-  {
-    "QuestionText": "A company uses AWS Key Management Service (KMS) to encrypt EBS volumes. A SysOps administrator needs to grant an IAM user in another account permission to decrypt a specific KMS customer managed key. What is the required configuration?",
-    "Options": [
-      "Add a grant to the KMS key with the external account's root user as the grantee",
-      "Add a key policy statement allowing the external account to use the key, and attach an IAM policy to the user",
-      "Create a cross-account role that the user can assume to decrypt",
-      "Enable automatic key rotation for the KMS key"
-    ],
-    "CorrectAnswer": "Add a key policy statement allowing the external account to use the key, and attach an IAM policy to the user",
-    "Explanation": "Cross-account KMS access requires a key policy that delegates permissions to an external account (e.g., 'Allow' to account ID), and then that external account's IAM administrator must attach an IAM policy to the specific user allowing kms:Decrypt. Both are needed."
-  },
-  {
-    "QuestionText": "A DevOps engineer is using AWS CodeBuild to run tests. The build frequently fails because of 'no space left on device' errors even though the build environment uses the recommended instance type. What is the most efficient way to increase available disk space without changing the build environment type?",
-    "Options": [
-      "Add a 'buildspec.yml' step to mount an additional Amazon EBS volume",
-      "Use a larger compute type with more ephemeral storage",
-      "Set the 'computeType' to a value that includes higher disk capacity",
-      "Cache build artifacts in Amazon S3 and clean the local directory between builds"
-    ],
-    "CorrectAnswer": "Cache build artifacts in Amazon S3 and clean the local directory between builds",
-    "Explanation": "CodeBuild environments have fixed ephemeral storage (e.g., 50GB for general purpose). To avoid filling it, you can use S3 caching and ensure the build script removes temporary files. Changing compute type increases storage but costs more. Cleaning and caching is efficient."
-  },
-  {
-    "QuestionText": "An administrator wants to monitor the number of successful and failed SSH login attempts on a fleet of Amazon Linux EC2 instances. The administrator needs to visualize this as a time-series graph in a central dashboard. Which approach requires the least operational overhead?",
-    "Options": [
-      "Install the Amazon CloudWatch agent on each instance and configure it to parse /var/log/secure",
-      "Enable CloudTrail for EC2 API calls and create a metric filter",
-      "Configure AWS Config advanced queries to scan instance logs",
-      "Set up an AWS Lambda function to periodically SSH into each instance and parse auth logs"
-    ],
-    "CorrectAnswer": "Install the Amazon CloudWatch agent on each instance and configure it to parse /var/log/secure",
-    "Explanation": "The CloudWatch agent can collect custom metrics from log files like /var/log/secure (or /var/log/auth.log). It can extract counts of 'Accepted' and 'Failed' patterns and publish them as metrics, which can then be graphed in CloudWatch dashboards. This is low overhead and agent-based."
-  },
-  {
-    "QuestionText": "A company has an AWS Lambda function that processes messages from an Amazon SQS queue. The function occasionally fails due to transient errors, and the messages return to the queue. The administrator wants to retry the message up to 3 times before sending it to a dead-letter queue. How should this be configured?",
-    "Options": [
-      "Set the Lambda function's reserved concurrency to 1",
-      "Configure the SQS queue's redrive policy with maxReceiveCount = 3",
-      "Set the Lambda function's timeout to a higher value",
-      "Enable the Lambda function's DLQ with a retry attempt of 3"
-    ],
-    "CorrectAnswer": "Configure the SQS queue's redrive policy with maxReceiveCount = 3",
-    "Explanation": "SQS queues have a redrive policy that moves messages to a dead-letter queue after a specified number of receives (maxReceiveCount). When Lambda polls the queue, each failed invocation (or partial batch failure) results in the message being returned to the queue and incrementing the receive count. After 3 receives, it goes to DLQ."
-  },
-  {
-    "QuestionText": "A SysOps administrator is setting up cross-Region replication for an S3 bucket. The replication rule is enabled, but objects are not replicating to the destination bucket. The administrator has verified that versioning is enabled on both buckets and the IAM role has correct permissions. What else should be checked?",
-    "Options": [
-      "The source bucket's default encryption settings match the destination",
-      "The destination bucket's bucket policy allows the replication role to put objects",
-      "The source bucket is in the same Region as the destination",
-      "The replication rule has a filter with a specific prefix"
-    ],
-    "CorrectAnswer": "The destination bucket's bucket policy allows the replication role to put objects",
-    "Explanation": "Even if the IAM role has s3:PutObject permissions, the destination bucket's bucket policy might explicitly deny or not allow the role's account to write. For cross-Region replication, the destination bucket policy must grant permission to the replication role's principal to put objects."
-  },
-  {
-    "QuestionText": "A DevOps engineer needs to update an Amazon EKS cluster's worker nodes to a newer Amazon Machine Image (AMI). The cluster uses managed node groups. What is the recommended way to perform this update with minimal application disruption?",
-    "Options": [
-      "Delete the existing node group and create a new one with the new AMI",
-      "Update the launch template version for the node group and initiate a rolling update",
-      "Manually drain and terminate each node, then use kubeadm to upgrade",
-      "Create a new node group with the new AMI and cordon/drain the old nodes gradually"
-    ],
-    "CorrectAnswer": "Create a new node group with the new AMI and cordon/drain the old nodes gradually",
-    "Explanation": "For EKS managed node groups, the best practice to update AMIs is to create a new node group with the desired AMI version, then cordon and drain pods from the old node group. Once all pods are migrated, delete the old node group. This ensures high availability."
+    "QuestionText": "You need to create an S3 bucket with versioning enabled and configure lifecycle rules to transition objects to Glacier after 90 days. Provide the AWS CLI command to create this bucket (bucket name: my-archive-bucket, region: us-west-2).",
+    "QuestionType": "practical",
+    "ValidationType": "cli_command",
+    "AcceptedFormats": ["aws s3api create-bucket"],
+    "CorrectAnswer": "aws s3api create-bucket --bucket my-archive-bucket --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2 && aws s3api put-bucket-versioning --bucket my-archive-bucket --versioning-configuration Status=Enabled",
+    "Explanation": "Creating an S3 bucket in a non-us-east-1 region requires the --create-bucket-configuration parameter with LocationConstraint. Versioning must be enabled separately using put-bucket-versioning. The lifecycle rule would then be added using put-bucket-lifecycle-configuration with a transition action to GLACIER storage class after 90 days. Note: For us-east-1, you can omit the LocationConstraint parameter."
   }
 ]

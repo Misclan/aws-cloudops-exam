@@ -3,124 +3,544 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CloudOps Exam Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AWS CloudOps Exam Pro</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+        
+        .question-card {
+            background: rgba(30, 41, 59, 0.8);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .question-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #f97316;
+            font-weight: 700;
+        }
+        
+        .question-type-badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-mcq {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .badge-practical {
+            background: rgba(168, 85, 247, 0.2);
+            color: #a855f7;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        
+        .question-text {
+            font-size: 1.25rem;
+            line-height: 1.7;
+            margin-bottom: 30px;
+            color: #e2e8f0;
+        }
+        
+        .options-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .option-btn {
+            background: rgba(51, 65, 85, 0.5);
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 18px 24px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #e2e8f0;
+            font-size: 1rem;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .option-btn:hover:not(:disabled) {
+            background: rgba(51, 65, 85, 0.8);
+            border-color: #f97316;
+            transform: translateX(4px);
+        }
+        
+        .option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .option-correct {
+            background: rgba(34, 197, 94, 0.2) !important;
+            border-color: #22c55e !important;
+            color: #22c55e !important;
+        }
+        
+        .option-incorrect {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: #ef4444 !important;
+            color: #ef4444 !important;
+        }
+        
+        .feedback-box {
+            margin-top: 30px;
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid;
+        }
+        
+        .feedback-correct {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+        }
+        
+        .feedback-incorrect {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+        
+        .feedback-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .feedback-explanation {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            font-style: italic;
+        }
+        
+        .next-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(249, 115, 22, 0.4);
+        }
+        
+        .results-card {
+            text-align: center;
+            padding: 60px 40px;
+        }
+        
+        .results-score {
+            font-size: 5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 20px 0;
+        }
+        
+        .results-percentage {
+            font-size: 1.5rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+        }
+        
+        .retry-btn {
+            padding: 16px 40px;
+            background: rgba(51, 65, 85, 0.8);
+            border: 2px solid #f97316;
+            border-radius: 12px;
+            color: #f97316;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .retry-btn:hover {
+            background: #f97316;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 1.2rem;
+            color: #94a3b8;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(249, 115, 22, 0.2);
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .practical-input {
+            width: 100%;
+            padding: 16px;
+            background: rgba(51, 65, 85, 0.5);
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            color: #e2e8f0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+        
+        .practical-input:focus {
+            outline: none;
+            border-color: #f97316;
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(148, 163, 184, 0.3);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 16px;
+        }
+        
+        .upload-area:hover {
+            border-color: #f97316;
+            background: rgba(249, 115, 22, 0.05);
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: rgba(168, 85, 247, 0.2);
+            border: 2px solid #a855f7;
+            border-radius: 12px;
+            color: #a855f7;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .submit-btn:hover {
+            background: #a855f7;
+            color: white;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen p-4 flex items-center justify-center">
+<body>
+    <div id="root"></div>
 
-    <div id="quiz-container" class="w-full max-w-2xl">
-        <div class="text-center animate-pulse">
-            <h1 class="text-2xl font-bold">Syncing with AWS...</h1>
-        </div>
-    </div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-    <script>
-        const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions';
-        let allQuestions = [];
-        let index = 0;
-        let score = 0;
+        const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
 
-        async function startApp() {
-            try {
-                const res = await fetch(API_URL);
-                let data = await res.json();
-                
-                // Handle Lambda's double-stringified output
-                if (typeof data === 'string') data = JSON.parse(data);
-                
-                // Sort to fix the "weird ordering" issue
-                allQuestions = data.sort((a, b) => a.QuestionID - b.QuestionID);
-                renderCurrent();
-            } catch (err) {
-                console.error("Boot Error:", err);
+        function ExamApp() {
+            const [questions, setQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [score, setScore] = useState(0);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [showFeedback, setShowFeedback] = useState(false);
+            const [loading, setLoading] = useState(true);
+            const [practicalInput, setPracticalInput] = useState('');
+            const [uploadedFile, setUploadedFile] = useState(null);
+
+            useEffect(() => {
+                fetchQuestions();
+            }, []);
+
+            async function fetchQuestions() {
+                try {
+                    const response = await fetch(API_URL);
+                    let data = await response.json();
+                    
+                    // Handle double-stringified JSON
+                    if (typeof data === 'string') {
+                        data = JSON.parse(data);
+                    }
+                    
+                    // Shuffle questions
+                    const shuffled = data.sort(() => Math.random() - 0.5);
+                    setQuestions(shuffled);
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Failed to fetch questions:', error);
+                    setLoading(false);
+                }
             }
-        }
 
-        function renderCurrent() {
-            const q = allQuestions[index];
-            const root = document.getElementById('quiz-container');
-            
-            // 1. Create the Shell
-            root.innerHTML = `
-                <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl">
-                    <div class="flex justify-between text-xs font-mono text-slate-500 mb-6">
-                        <span>PROGRESS: ${index + 1}/${allQuestions.length}</span>
-                        <span>SCORE: ${score}</span>
+            function handleAnswerSelect(option) {
+                setSelectedAnswer(option);
+                setShowFeedback(true);
+                
+                const currentQ = questions[currentIndex];
+                if (option === currentQ.CorrectAnswer) {
+                    setScore(score + 1);
+                }
+            }
+
+            function handlePracticalSubmit() {
+                // For now, just show feedback - in production, this would validate against correct answer
+                setShowFeedback(true);
+                const currentQ = questions[currentIndex];
+                
+                // Simple validation check (you'd make this smarter in production)
+                const isCorrect = practicalInput.toLowerCase().includes(
+                    currentQ.CorrectAnswer.toLowerCase().substring(0, 10)
+                );
+                
+                if (isCorrect) {
+                    setScore(score + 1);
+                }
+                setSelectedAnswer(practicalInput || 'No input provided');
+            }
+
+            function handleNext() {
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setPracticalInput('');
+                setUploadedFile(null);
+                setCurrentIndex(currentIndex + 1);
+            }
+
+            function handleRetry() {
+                setCurrentIndex(0);
+                setScore(0);
+                setSelectedAnswer(null);
+                setShowFeedback(false);
+                setPracticalInput('');
+                setUploadedFile(null);
+                fetchQuestions();
+            }
+
+            if (loading) {
+                return (
+                    <div className="container">
+                        <div className="header">
+                            <h1>AWS CloudOps Exam Pro</h1>
+                            <p>Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+                        </div>
+                        <div className="question-card">
+                            <div className="loading">
+                                <div className="loading-spinner"></div>
+                                <div>Loading exam questions...</div>
+                            </div>
+                        </div>
                     </div>
-                    <h2 id="display-q" class="text-xl font-bold mb-8 leading-relaxed"></h2>
-                    <div id="options-stack" class="space-y-4"></div>
-                    <div id="explanation-box" class="hidden mt-8 p-6 rounded-2xl border-2"></div>
-                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-black hover:bg-orange-500 transition-all uppercase tracking-widest">Next Challenge</button>
-                </div>
-            `;
-
-            // 2. SAFE TEXT INJECTION (The "SyntaxError" Killer)
-            // Using .textContent ensures the browser never "reads" the text as code
-            document.getElementById('display-q').textContent = q.QuestionText;
-
-            const stack = document.getElementById('options-stack');
-            q.Options.forEach((choice) => {
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/40 hover:bg-slate-700 hover:border-slate-400 transition-all";
-                btn.textContent = choice; // Safely handles 'role's' and 'bucket's'
-                
-                btn.onclick = () => evaluate(btn, choice, q.CorrectAnswer, q.Explanation);
-                stack.appendChild(btn);
-            });
-        }
-
-        function evaluate(clickedBtn, selected, correct, why) {
-            // Lock all buttons immediately
-            const allBtns = document.querySelectorAll('#options-stack button');
-            allBtns.forEach(b => b.disabled = true);
-
-            const box = document.getElementById('explanation-box');
-            const next = document.getElementById('next-btn');
-            box.classList.remove('hidden');
-
-            const isRight = selected === correct;
-
-            if (isRight) {
-                score++;
-                clickedBtn.classList.add('border-green-500', 'bg-green-500/10', 'text-green-400');
-                box.className = "mt-8 p-6 rounded-2xl border-2 border-green-500/30 bg-green-500/5 text-green-100";
-                box.innerHTML = `<p class="font-bold text-lg mb-2 text-green-400">Correct Sequence</p>`;
-            } else {
-                clickedBtn.classList.add('border-red-500', 'bg-red-900/20', 'text-red-400');
-                box.className = "mt-8 p-6 rounded-2xl border-2 border-red-500/30 bg-red-500/5 text-red-100";
-                box.innerHTML = `<p class="font-bold text-lg mb-2 text-red-400">Inefficient Path</p>
-                                 <p class="text-sm opacity-70 mb-2 underline decoration-orange-500/50">Optimal: ${correct}</p>`;
+                );
             }
 
-            // 3. SAFE EXPLANATION
-            const info = document.createElement('div');
-            info.className = "mt-4 pt-4 border-t border-slate-700/50 text-sm leading-relaxed text-slate-300";
-            info.innerHTML = `<span class="text-orange-500 font-bold uppercase text-[10px] tracking-tighter">Root Cause Analysis:</span><br>`;
-            
-            const textContent = document.createTextNode(why); // The ultimate shield
-            info.appendChild(textContent);
-            box.appendChild(info);
+            if (currentIndex >= questions.length) {
+                const percentage = Math.round((score / questions.length) * 100);
+                return (
+                    <div className="container">
+                        <div className="header">
+                            <h1>AWS CloudOps Exam Pro</h1>
+                            <p>Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+                        </div>
+                        <div className="question-card results-card">
+                            <h2 style={{fontSize: '2rem', marginBottom: '20px'}}>Exam Complete!</h2>
+                            <div className="results-score">{score} / {questions.length}</div>
+                            <div className="results-percentage">{percentage}% Correct</div>
+                            <button className="retry-btn" onClick={handleRetry}>
+                                Try Again
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
 
-            next.classList.remove('hidden');
-            next.onclick = () => {
-                index++;
-                if (index < allQuestions.length) renderCurrent();
-                else finish();
-            };
-        }
+            const currentQ = questions[currentIndex];
+            const isPractical = currentQ.QuestionType === 'practical';
 
-        function finish() {
-            document.getElementById('quiz-container').innerHTML = `
-                <div class="text-center bg-slate-800 p-12 rounded-3xl border border-slate-700">
-                    <h2 class="text-3xl font-black mb-2 text-orange-500">EXAM COMPLETE</h2>
-                    <p class="text-slate-400 text-sm mb-8 font-mono">CloudOps Skills Validated</p>
-                    <div class="text-7xl font-black mb-10">${score} <span class="text-2xl text-slate-600">/ ${allQuestions.length}</span></div>
-                    <button onclick="location.reload()" class="bg-slate-700 px-10 py-4 rounded-xl font-bold hover:bg-slate-600 transition-all">REBOOT EXAM</button>
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>AWS CloudOps Exam Pro</h1>
+                        <p>Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+                    </div>
+                    
+                    <div className="question-card">
+                        <div className="question-header">
+                            <div className="question-number">
+                                Question {currentIndex + 1} of {questions.length}
+                            </div>
+                            <div className={`question-type-badge ${isPractical ? 'badge-practical' : 'badge-mcq'}`}>
+                                {isPractical ? 'Practical' : 'Multiple Choice'}
+                            </div>
+                        </div>
+
+                        <div className="question-text">
+                            {currentQ.QuestionText}
+                        </div>
+
+                        {!isPractical ? (
+                            <div className="options-grid">
+                                {currentQ.Options.map((option, idx) => {
+                                    let className = 'option-btn';
+                                    if (showFeedback) {
+                                        if (option === currentQ.CorrectAnswer) {
+                                            className += ' option-correct';
+                                        } else if (option === selectedAnswer) {
+                                            className += ' option-incorrect';
+                                        }
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={idx}
+                                            className={className}
+                                            onClick={() => handleAnswerSelect(option)}
+                                            disabled={showFeedback}
+                                        >
+                                            {option}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div>
+                                <input
+                                    type="text"
+                                    className="practical-input"
+                                    placeholder="Enter ARN, Resource ID, or configuration details..."
+                                    value={practicalInput}
+                                    onChange={(e) => setPracticalInput(e.target.value)}
+                                    disabled={showFeedback}
+                                />
+                                
+                                <div className="upload-area" onClick={() => !showFeedback && document.getElementById('fileUpload').click()}>
+                                    <div style={{fontSize: '2rem', marginBottom: '10px'}}>📸</div>
+                                    <div>{uploadedFile ? uploadedFile.name : 'Click to upload screenshot'}</div>
+                                    <div style={{fontSize: '0.85rem', color: '#94a3b8', marginTop: '8px'}}>
+                                        (Optional - for console screenshots)
+                                    </div>
+                                </div>
+                                <input
+                                    id="fileUpload"
+                                    type="file"
+                                    accept="image/*"
+                                    style={{display: 'none'}}
+                                    onChange={(e) => setUploadedFile(e.target.files[0])}
+                                    disabled={showFeedback}
+                                />
+                                
+                                {!showFeedback && (
+                                    <button className="submit-btn" onClick={handlePracticalSubmit}>
+                                        Submit Answer
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {showFeedback && (
+                            <div className={`feedback-box ${selectedAnswer === currentQ.CorrectAnswer ? 'feedback-correct' : 'feedback-incorrect'}`}>
+                                <div className="feedback-title">
+                                    {selectedAnswer === currentQ.CorrectAnswer ? '✅ Correct!' : '❌ Incorrect'}
+                                </div>
+                                {selectedAnswer !== currentQ.CorrectAnswer && (
+                                    <div style={{marginTop: '12px', fontSize: '0.95rem'}}>
+                                        <strong>Correct Answer:</strong> {currentQ.CorrectAnswer}
+                                    </div>
+                                )}
+                                <div className="feedback-explanation">
+                                    <strong>Why?</strong> {currentQ.Explanation}
+                                </div>
+                            </div>
+                        )}
+
+                        {showFeedback && (
+                            <button className="next-btn" onClick={handleNext}>
+                                {currentIndex < questions.length - 1 ? 'Next Question' : 'View Results'}
+                            </button>
+                        )}
+                    </div>
                 </div>
-            `;
+            );
         }
 
-        startApp();
+        ReactDOM.render(<ExamApp />, document.getElementById('root'));
     </script>
 </body>
 </html>
