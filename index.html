@@ -27,25 +27,22 @@
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions'; 
 
         let currentQuestions = [];
-        let score = 0;
-        let currentIndex = 0;
 
         async function fetchQuestions() {
             try {
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Safety net for the "weird" stringified data in your network tab
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
+                // Handle the "weird" stringified data format
+                if (typeof data === 'string') data = JSON.parse(data);
                 
                 currentQuestions = data;
-                showQuestion();
-            } catch (error) {
-                console.error("Fetch error:", error);
+                displayQuestions();
+            } catch (err) {
+                console.error("Failed to load:", err);
             }
         }
+        
 
         function showQuestion() {
             const q = currentQuestions[currentIndex];
@@ -74,27 +71,34 @@
             `;
         }
 
-        function checkAnswer(btn, selected, correct, explanation) {
-            // Stop multiple clicks
+        function checkAnswer(btn, questionIndex, selectedOption) {
+            const q = currentQuestions[questionIndex]; // Get data safely from the array
+            const feedbackDiv = document.getElementById('feedback');
+            
+            // Disable all options for this question
             const buttons = document.querySelectorAll('.option-btn');
             buttons.forEach(b => b.disabled = true);
 
-            const feedbackDiv = document.getElementById('feedback');
-            feedbackDiv.classList.remove('hidden');
+            feedbackDiv.className = "mt-4 p-4 rounded-lg border block shadow-sm";
 
-            if (selected === correct) {
-                score++;
-                btn.className = "option-btn w-full text-left p-4 rounded-lg border border-green-500 bg-green-900/30 text-green-400";
-                feedbackDiv.className = "mt-6 p-4 rounded-lg border border-green-500 bg-green-900/20 text-green-100";
-                feedbackDiv.innerHTML = `<p class="font-bold mb-2">✅ Correct!</p>`;
+            if (selectedOption === q.CorrectAnswer) {
+                btn.className = "w-full p-3 mb-2 rounded bg-green-600 text-white border-green-700";
+                feedbackDiv.classList.add('bg-green-50', 'text-green-800', 'border-green-200');
+                feedbackDiv.innerHTML = `<p class="font-bold">✅ Correct!</p>`;
             } else {
-                btn.className = "option-btn w-full text-left p-4 rounded-lg border border-red-500 bg-red-900/30 text-red-400";
-                feedbackDiv.className = "mt-6 p-4 rounded-lg border border-red-500 bg-red-900/20 text-red-100";
-                feedbackDiv.innerHTML = `<p class="font-bold mb-2">❌ Incorrect. The answer was: ${correct}</p>`;
+                btn.className = "w-full p-3 mb-2 rounded bg-red-600 text-white border-red-700";
+                feedbackDiv.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
+                feedbackDiv.innerHTML = `<p class="font-bold">❌ Incorrect.</p>
+                                        <p class="text-sm">Correct answer: ${q.CorrectAnswer}</p>`;
             }
 
-            // Add the missing explanation
-            feedbackDiv.innerHTML += `<p class="text-sm italic opacity-90"><span class="not-italic font-bold">Why?</span> ${explanation}</p>`;
+            // Display the explanation safely
+            feedbackDiv.innerHTML += `
+                <div class="mt-2 pt-2 border-t border-gray-300 text-sm italic text-gray-700">
+                    <strong>Why?</strong> ${q.Explanation}
+                </div>
+            `;
+            
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
