@@ -59,23 +59,39 @@
 
         function checkAnswer(btn, selected, correct, explanation) {
             const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(b => b.disabled = true); // Prevent double clicking
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.classList.add('opacity-50', 'cursor-not-allowed');
+            });
 
             const feedbackDiv = document.getElementById('feedback');
-            feedbackDiv.classList.remove('hidden');
+            
+            // Reset classes and make visible
+            feedbackDiv.className = "mt-4 p-4 rounded-lg border shadow-sm block";
 
             if (selected === correct) {
-                btn.style.backgroundColor = "#28a745"; // Green
+                // Tailwind: Green theme
+                btn.classList.add('bg-green-600', 'text-white', 'border-green-700');
+                feedbackDiv.classList.add('bg-green-50', 'text-green-800', 'border-green-200');
                 score++;
-                feedbackDiv.innerHTML = `<p class="correct">✅ Correct!</p>`;
+                feedbackDiv.innerHTML = `<p class="font-bold">✅ Correct!</p>`;
             } else {
-                btn.style.backgroundColor = "#dc3545"; // Red
-                feedbackDiv.innerHTML = `<p class="wrong">❌ Incorrect. The correct answer was: ${correct}</p>`;
+                // Tailwind: Red theme
+                btn.classList.add('bg-red-600', 'text-white', 'border-red-700');
+                feedbackDiv.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
+                feedbackDiv.innerHTML = `<p class="font-bold">❌ Incorrect.</p><p class="text-sm">Correct answer: <span class="font-semibold">${correct}</span></p>`;
             }
 
-            // Always show the explanation
-            feedbackDiv.innerHTML += `<div class="explanation"><strong>Why?</strong> ${explanation}</div>`;
-            document.getElementById('next-btn').classList.remove('hidden');
+            // Add Explanation with Tailwind styling
+            feedbackDiv.innerHTML += `
+                <div class="mt-3 pt-3 border-t border-gray-200 text-gray-700 text-sm italic">
+                    <span class="font-bold not-italic">Why?</span> ${explanation}
+                </div>
+            `;
+
+            // Show Next button with Tailwind
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.className = "mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition block";
         }
 
         function nextQuestion() {
