@@ -3,116 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AWS CloudOps Practice Exam</title>
+    <title>CloudOps Exam Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+<body class="bg-slate-900 text-white min-h-screen p-4 flex items-center justify-center">
 
-    <main id="quiz-container" class="w-full max-w-2xl">
-        <div id="loading" class="text-center">
-            <p class="text-xl animate-pulse">Fetching CloudOps Data...</p>
+    <div id="quiz-container" class="w-full max-w-2xl">
+        <div class="text-center animate-pulse">
+            <h1 class="text-2xl font-bold">Syncing with AWS...</h1>
         </div>
-    </main>
+    </div>
 
     <script>
-        const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions'; 
-
-        let currentQuestions = [];
-        let currentIndex = 0;
+        const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions';
+        let allQuestions = [];
+        let index = 0;
         let score = 0;
 
-        async function fetchQuestions() {
+        async function startApp() {
             try {
-                const response = await fetch(API_URL);
-                let data = await response.json();
+                const res = await fetch(API_URL);
+                let data = await res.json();
                 
-                // Handle double-stringified JSON
+                // Handle Lambda's double-stringified output
                 if (typeof data === 'string') data = JSON.parse(data);
                 
-                currentQuestions = data;
-                renderQuestion();
-            } catch (error) {
-                console.error("Fetch failed:", error);
+                // Sort to fix the "weird ordering" issue
+                allQuestions = data.sort((a, b) => a.QuestionID - b.QuestionID);
+                renderCurrent();
+            } catch (err) {
+                console.error("Boot Error:", err);
             }
         }
 
-        function renderQuestion() {
-            const q = currentQuestions[currentIndex];
-            const container = document.getElementById('quiz-container');
+        function renderCurrent() {
+            const q = allQuestions[index];
+            const root = document.getElementById('quiz-container');
             
-            // Create a clean UI shell
-            container.innerHTML = `
-                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl">
-                    <h2 id="question-text" class="text-xl font-bold mb-8 leading-relaxed"></h2>
-                    <div id="options-list" class="space-y-4"></div>
-                    <div id="feedback-area" class="hidden mt-8 p-6 rounded-xl border-2"></div>
-                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-black">NEXT QUESTION</button>
+            // 1. Create the Shell
+            root.innerHTML = `
+                <div class="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl">
+                    <div class="flex justify-between text-xs font-mono text-slate-500 mb-6">
+                        <span>PROGRESS: ${index + 1}/${allQuestions.length}</span>
+                        <span>SCORE: ${score}</span>
+                    </div>
+                    <h2 id="display-q" class="text-xl font-bold mb-8 leading-relaxed"></h2>
+                    <div id="options-stack" class="space-y-4"></div>
+                    <div id="explanation-box" class="hidden mt-8 p-6 rounded-2xl border-2"></div>
+                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-black hover:bg-orange-500 transition-all uppercase tracking-widest">Next Challenge</button>
                 </div>
             `;
 
-            // Safely set text using textContent (this ignores all syntax errors)
-            document.getElementById('question-text').textContent = q.QuestionText;
+            // 2. SAFE TEXT INJECTION (The "SyntaxError" Killer)
+            // Using .textContent ensures the browser never "reads" the text as code
+            document.getElementById('display-q').textContent = q.QuestionText;
 
-            const optionsList = document.getElementById('options-list');
-            q.Options.forEach(opt => {
+            const stack = document.getElementById('options-stack');
+            q.Options.forEach((choice) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 transition-all";
+                btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/40 hover:bg-slate-700 hover:border-slate-400 transition-all";
+                btn.textContent = choice; // Safely handles 'role's' and 'bucket's'
                 
-                // This is the key: textContent treats the option as pure text, not code
-                btn.textContent = opt; 
-                
-                // Use an event listener so we aren't passing strings through HTML
-                btn.addEventListener('click', () => handleSelection(btn, opt, q.CorrectAnswer, q.Explanation));
-                optionsList.appendChild(btn);
+                btn.onclick = () => evaluate(btn, choice, q.CorrectAnswer, q.Explanation);
+                stack.appendChild(btn);
             });
         }
 
-        function handleSelection(selectedBtn, selectedText, correctText, explanationText) {
-            // Disable all buttons to prevent double-clicking
-            document.querySelectorAll('#options-list button').forEach(b => b.disabled = true);
-            
-            const feedback = document.getElementById('feedback-area');
-            feedback.classList.remove('hidden');
+        function evaluate(clickedBtn, selected, correct, why) {
+            // Lock all buttons immediately
+            const allBtns = document.querySelectorAll('#options-stack button');
+            allBtns.forEach(b => b.disabled = true);
 
-            if (selectedText === correctText) {
+            const box = document.getElementById('explanation-box');
+            const next = document.getElementById('next-btn');
+            box.classList.remove('hidden');
+
+            const isRight = selected === correct;
+
+            if (isRight) {
                 score++;
-                selectedBtn.classList.add('border-green-500', 'bg-green-500/10', 'text-green-400');
-                feedback.className = "mt-8 p-6 rounded-xl border-2 border-green-500/50 bg-green-900/30 text-green-100";
-                feedback.innerHTML = `<p class="font-bold text-lg mb-2 text-green-400">✅ Correct!</p>`;
+                clickedBtn.classList.add('border-green-500', 'bg-green-500/10', 'text-green-400');
+                box.className = "mt-8 p-6 rounded-2xl border-2 border-green-500/30 bg-green-500/5 text-green-100";
+                box.innerHTML = `<p class="font-bold text-lg mb-2 text-green-400">Correct Sequence</p>`;
             } else {
-                selectedBtn.classList.add('border-red-500', 'bg-red-500/10', 'text-red-400');
-                feedback.className = "mt-8 p-6 rounded-xl border-2 border-red-500/50 bg-red-900/30 text-red-100";
-                feedback.innerHTML = `<p class="font-bold text-lg mb-2 text-red-400">❌ Incorrect.</p>
-                                    <p class="text-sm opacity-80 mb-2">The answer was: ${correctText}</p>`;
+                clickedBtn.classList.add('border-red-500', 'bg-red-900/20', 'text-red-400');
+                box.className = "mt-8 p-6 rounded-2xl border-2 border-red-500/30 bg-red-500/5 text-red-100";
+                box.innerHTML = `<p class="font-bold text-lg mb-2 text-red-400">Inefficient Path</p>
+                                 <p class="text-sm opacity-70 mb-2 underline decoration-orange-500/50">Optimal: ${correct}</p>`;
             }
 
-            // Safely add the explanation text
-            const expDiv = document.createElement('div');
-            expDiv.className = "mt-4 pt-4 border-t border-slate-600 text-sm italic text-slate-300";
-            expDiv.innerHTML = `<strong>Why?</strong> `;
-            expDiv.appendChild(document.createTextNode(explanationText));
-            feedback.appendChild(expDiv);
+            // 3. SAFE EXPLANATION
+            const info = document.createElement('div');
+            info.className = "mt-4 pt-4 border-t border-slate-700/50 text-sm leading-relaxed text-slate-300";
+            info.innerHTML = `<span class="text-orange-500 font-bold uppercase text-[10px] tracking-tighter">Root Cause Analysis:</span><br>`;
+            
+            const textContent = document.createTextNode(why); // The ultimate shield
+            info.appendChild(textContent);
+            box.appendChild(info);
 
-            const nextBtn = document.getElementById('next-btn');
-            nextBtn.classList.remove('hidden');
-            nextBtn.onclick = () => {
-                currentIndex++;
-                if (currentIndex < currentQuestions.length) renderQuestion();
-                else showResult();
+            next.classList.remove('hidden');
+            next.onclick = () => {
+                index++;
+                if (index < allQuestions.length) renderCurrent();
+                else finish();
             };
         }
 
-        function showResult() {
+        function finish() {
             document.getElementById('quiz-container').innerHTML = `
-                <div class="text-center p-12 bg-slate-800 rounded-2xl border border-slate-700">
-                    <h2 class="text-3xl font-bold mb-4">Exam Complete</h2>
-                    <p class="text-6xl font-black text-orange-500">${score} / ${currentQuestions.length}</p>
-                    <button onclick="location.reload()" class="mt-8 bg-slate-700 px-8 py-3 rounded-lg">Try Again</button>
+                <div class="text-center bg-slate-800 p-12 rounded-3xl border border-slate-700">
+                    <h2 class="text-3xl font-black mb-2 text-orange-500">EXAM COMPLETE</h2>
+                    <p class="text-slate-400 text-sm mb-8 font-mono">CloudOps Skills Validated</p>
+                    <div class="text-7xl font-black mb-10">${score} <span class="text-2xl text-slate-600">/ ${allQuestions.length}</span></div>
+                    <button onclick="location.reload()" class="bg-slate-700 px-10 py-4 rounded-xl font-bold hover:bg-slate-600 transition-all">REBOOT EXAM</button>
                 </div>
             `;
         }
 
-        fetchQuestions();
+        startApp();
     </script>
 </body>
 </html>
