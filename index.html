@@ -23,100 +23,119 @@
     </main>
 
     <script>
-        // Replace with your actual API Gateway URL
+        // Use your specific API URL from image_cac56c.jpg
+        // 1. Configuration
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/prod/questions'; 
 
         let currentQuestions = [];
+        let currentIndex = 0;
+        let score = 0;
 
+        // 2. Fetch and Parse Data
         async function fetchQuestions() {
             try {
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle the "weird" stringified data format
-                if (typeof data === 'string') data = JSON.parse(data);
+                // Fix for the "weird" stringified format seen in Inspect
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
                 
                 currentQuestions = data;
-                displayQuestions();
-            } catch (err) {
-                console.error("Failed to load:", err);
+                renderQuestion();
+            } catch (error) {
+                console.error("CloudOps Error: Could not fetch data", error);
+                document.getElementById('quiz-container').innerHTML = `<p class="text-red-500">Error loading questions. Check API.</p>`;
             }
         }
-        
 
-        function showQuestion() {
+        // 3. Render Question UI
+        function renderQuestion() {
             const q = currentQuestions[currentIndex];
             const container = document.getElementById('quiz-container');
             
-            // Using Tailwind for a clean layout
             container.innerHTML = `
-                <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
-                    <div class="flex justify-between mb-4 text-slate-400 text-sm">
+                <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 animate-fade-in">
+                    <div class="flex justify-between mb-6 text-slate-400 text-xs font-mono uppercase tracking-widest">
                         <span>Question ${currentIndex + 1} of ${currentQuestions.length}</span>
-                        <span>Score: ${score}</span>
+                        <span>Current Score: ${score}</span>
                     </div>
-                    <p class="text-xl font-semibold mb-6">${q.QuestionText}</p>
-                    <div class="space-y-3">
-                        ${q.Options.map(opt => `
-                            <button class="option-btn w-full text-left p-4 rounded-lg border border-slate-600 hover:bg-slate-700 transition-all"
-                                    onclick="checkAnswer(this, '${opt}', '${q.CorrectAnswer}', '${q.Explanation.replace(/'/g, "\\'")}')">
-                                ${opt}
-                            </button>
-                        `).join('')}
-                    </div>
-                    <div id="feedback" class="hidden mt-6 p-4 rounded-lg border"></div>
-                    <button id="next-btn" class="hidden mt-6 w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition" 
-                            onclick="nextQuestion()">Next Question</button>
+                    
+                    <h2 class="text-2xl font-bold mb-8 leading-tight">${q.QuestionText}</h2>
+                    
+                    <div id="options-grid" class="grid gap-4"></div>
+                    
+                    <div id="feedback" class="hidden mt-8 p-6 rounded-xl border-2 transition-all duration-300"></div>
+                    
+                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-4 rounded-xl transition-all transform hover:scale-[1.02]" 
+                            onclick="goToNext()">
+                        NEXT QUESTION →
+                    </button>
                 </div>
             `;
+
+            // Create buttons via JS to prevent apostrophe/SyntaxErrors
+            const optionsGrid = document.getElementById('options-grid');
+            q.Options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn w-full text-left p-5 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 hover:border-slate-400 transition-all group";
+                btn.innerHTML = `<span class="text-slate-300 group-hover:text-white">${option}</span>`;
+                btn.onclick = () => validateAnswer(btn, option, q.CorrectAnswer, q.Explanation);
+                optionsGrid.appendChild(btn);
+            });
         }
 
-        function checkAnswer(btn, questionIndex, selectedOption) {
-            const q = currentQuestions[questionIndex]; // Get data safely from the array
-            const feedbackDiv = document.getElementById('feedback');
+        // 4. Logic & Feedback
+        function validateAnswer(selectedBtn, selectedText, correctText, explanationText) {
+            // Disable all buttons immediately
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
             
-            // Disable all options for this question
-            const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(b => b.disabled = true);
+            const feedback = document.getElementById('feedback');
+            feedback.classList.remove('hidden');
 
-            feedbackDiv.className = "mt-4 p-4 rounded-lg border block shadow-sm";
-
-            if (selectedOption === q.CorrectAnswer) {
-                btn.className = "w-full p-3 mb-2 rounded bg-green-600 text-white border-green-700";
-                feedbackDiv.classList.add('bg-green-50', 'text-green-800', 'border-green-200');
-                feedbackDiv.innerHTML = `<p class="font-bold">✅ Correct!</p>`;
+            if (selectedText === correctText) {
+                score++;
+                selectedBtn.className = "option-btn w-full text-left p-5 rounded-xl border-2 border-green-500 bg-green-500/10 text-green-400";
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-green-500/50 bg-green-500/10 text-green-100 block";
+                feedback.innerHTML = `<p class="text-xl font-bold mb-2 text-green-400">✅ Spot On!</p>`;
             } else {
-                btn.className = "w-full p-3 mb-2 rounded bg-red-600 text-white border-red-700";
-                feedbackDiv.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
-                feedbackDiv.innerHTML = `<p class="font-bold">❌ Incorrect.</p>
-                                        <p class="text-sm">Correct answer: ${q.CorrectAnswer}</p>`;
+                selectedBtn.className = "option-btn w-full text-left p-5 rounded-xl border-2 border-red-500 bg-red-500/10 text-red-400";
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-red-500/50 bg-red-500/10 text-red-100 block";
+                feedback.innerHTML = `<p class="text-xl font-bold mb-2 text-red-400">❌ Not Quite.</p>
+                                    <p class="text-sm mb-2 opacity-80">Correct Answer: <span class="font-bold">${correctText}</span></p>`;
             }
 
-            // Display the explanation safely
-            feedbackDiv.innerHTML += `
-                <div class="mt-2 pt-2 border-t border-gray-300 text-sm italic text-gray-700">
-                    <strong>Why?</strong> ${q.Explanation}
-                </div>
-            `;
+            // Append explanation safely
+            feedback.innerHTML += `<div class="mt-4 pt-4 border-t border-white/10 text-sm italic opacity-90">
+                                    <span class="font-bold not-italic text-slate-400 uppercase text-xs tracking-tighter mr-2">Why?</span>
+                                    ${explanationText}
+                                </div>`;
             
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
-        function nextQuestion() {
+        function goToNext() {
             currentIndex++;
             if (currentIndex < currentQuestions.length) {
-                showQuestion();
+                renderQuestion();
             } else {
-                document.getElementById('quiz-container').innerHTML = `
-                    <div class="text-center bg-slate-800 p-10 rounded-xl border border-slate-700">
-                        <h2 class="text-3xl font-bold mb-4">Exam Complete!</h2>
-                        <p class="text-2xl text-orange-500 mb-6">Final Score: ${score} / ${currentQuestions.length}</p>
-                        <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg transition">Try Again</button>
-                    </div>
-                `;
+                showFinalResults();
             }
         }
 
+        function showFinalResults() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = `
+                <div class="text-center bg-slate-800 p-12 rounded-2xl border border-slate-700 shadow-2xl">
+                    <h2 class="text-4xl font-black mb-4">Exam Finished!</h2>
+                    <p class="text-6xl font-bold text-orange-500 mb-8">${score} / ${currentQuestions.length}</p>
+                    <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-10 py-4 rounded-xl font-bold transition">RESTART EXAM</button>
+                </div>
+            `;
+        }
+
+        // Kick off the process
         fetchQuestions();
     </script>
 </body>
