@@ -31,9 +31,20 @@
         let currentIndex = 0;
 
         async function fetchQuestions() {
-            const response = await fetch(API_URL);
-            currentQuestions = await response.json();
-            showQuestion();
+            try {
+                const response = await fetch(API_URL);
+                let data = await response.json();
+                
+                // If the data is still a string (the "weird" issue), parse it again
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+                
+                currentQuestions = data;
+                displayQuestions();
+            } catch (error) {
+                console.error("Failed to load questions:", error);
+            }
         }
 
         function showQuestion() {
@@ -58,34 +69,23 @@
         }
 
         function checkAnswer(btn, selected, correct, explanation) {
-            const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(b => {
-                b.disabled = true;
-                b.classList.add('opacity-50', 'cursor-not-allowed');
-            });
-
             const feedbackDiv = document.getElementById('feedback');
-            
-            // Reset classes and make visible
-            feedbackDiv.className = "mt-4 p-4 rounded-lg border shadow-sm block";
+            // Force visibility and set base Tailwind classes
+            feedbackDiv.className = "mt-4 p-4 rounded-lg border block";
 
             if (selected === correct) {
-                // Tailwind: Green theme
-                btn.classList.add('bg-green-600', 'text-white', 'border-green-700');
+                btn.className = "option-btn w-full p-3 mb-2 rounded border transition-colors bg-green-600 text-white border-green-700";
                 feedbackDiv.classList.add('bg-green-50', 'text-green-800', 'border-green-200');
-                score++;
                 feedbackDiv.innerHTML = `<p class="font-bold">✅ Correct!</p>`;
             } else {
-                // Tailwind: Red theme
-                btn.classList.add('bg-red-600', 'text-white', 'border-red-700');
+                btn.className = "option-btn w-full p-3 mb-2 rounded border transition-colors bg-red-600 text-white border-red-700";
                 feedbackDiv.classList.add('bg-red-50', 'text-red-800', 'border-red-200');
-                feedbackDiv.innerHTML = `<p class="font-bold">❌ Incorrect.</p><p class="text-sm">Correct answer: <span class="font-semibold">${correct}</span></p>`;
+                feedbackDiv.innerHTML = `<p class="font-bold">❌ Incorrect.</p><p class="text-sm">Correct answer: ${correct}</p>`;
             }
 
-            // Add Explanation with Tailwind styling
             feedbackDiv.innerHTML += `
-                <div class="mt-3 pt-3 border-t border-gray-200 text-gray-700 text-sm italic">
-                    <span class="font-bold not-italic">Why?</span> ${explanation}
+                <div class="mt-2 pt-2 border-t border-gray-300 text-sm italic">
+                    <strong>Why?</strong> ${explanation}
                 </div>
             `;
 
