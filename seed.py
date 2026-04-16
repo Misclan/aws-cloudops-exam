@@ -25,30 +25,3 @@ with table.batch_writer() as batch:
     for q in questions:
         batch.put_item(Item=q)
 print("Upload complete!")
-
-
-
-#alternatively if you want to generate unique IDs automatically, you can use the uuid library as shown below:
-import boto3
-import json
-import uuid
-
-dynamodb = boto3.resource('dynamodb', region_name='af-south-1')
-table = dynamodb.Table('QuestionTable') # Use your real table name
-
-new_questions = [
-    {"text": "Which AWS service is used for object storage?", "opts": ["S3", "EC2", "RDS"], "ans": "S3"},
-    # Add more here...
-]
-
-with table.batch_writer() as batch:
-    for q in new_questions:
-        batch.put_item(
-            Item={
-                'QuestionID': str(uuid.uuid4()), # Generates a unique ID automatically
-                'QuestionText': q['text'],
-                'Options': q['opts'],
-                'CorrectAnswer': q['ans']
-            }
-        )
-print("Seeding complete!")
