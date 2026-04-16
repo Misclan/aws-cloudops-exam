@@ -2,22 +2,25 @@ import json
 import boto3
 import os
 
-# Grab the Table Name from environment variables (best practice!)
+# Use environment variables for flexibility
 TABLE_NAME = os.environ.get('TABLE_NAME', 'QuestionTable')
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(TABLE_NAME)
 
 def lambda_handler(event, context):
     try:
-        # Scan the table to get all questions
+        # Scan the table
         response = table.scan()
         items = response.get('Items', [])
 
+        # Essential: Ensure the frontend gets a clean array
         return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"  # Required for browser access
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Methods": "OPTIONS,GET"
             },
             "body": json.dumps(items)
         }
@@ -25,5 +28,9 @@ def lambda_handler(event, context):
         print(f"Error: {str(e)}")
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": "Failed to fetch questions"})
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            "body": json.dumps({"error": str(e)})
         }
