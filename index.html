@@ -34,7 +34,7 @@
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle the stringified JSON format seen in your Network tab
+                // Handle the stringified JSON format
                 if (typeof data === 'string') {
                     data = JSON.parse(data);
                 }
@@ -42,7 +42,7 @@
                 currentQuestions = data;
                 renderQuestion();
             } catch (error) {
-                console.error("Fetch failed:", error);
+                console.error("CloudOps Error:", error);
             }
         }
 
@@ -50,59 +50,74 @@
             const q = currentQuestions[currentIndex];
             const container = document.getElementById('quiz-container');
             
-            // 1. Build the base HTML structure
+            // 1. Setup the UI Shell
             container.innerHTML = `
-                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700">
-                    <h2 class="text-xl font-bold mb-6">${q.QuestionText}</h2>
-                    <div id="options-container" class="space-y-3"></div>
-                    <div id="feedback" class="hidden mt-6 p-4 rounded-lg border"></div>
-                    <button id="next-btn" class="hidden mt-6 w-full bg-blue-600 p-3 rounded-lg font-bold" onclick="nextQuestion()">Next Question</button>
+                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-xl">
+                    <h2 class="text-2xl font-bold mb-8">${q.QuestionText}</h2>
+                    <div id="options-list" class="space-y-4"></div>
+                    <div id="feedback-area" class="hidden mt-8 p-6 rounded-xl border-2"></div>
+                    <button id="next-btn" class="hidden mt-8 w-full bg-orange-600 py-4 rounded-xl font-bold hover:bg-orange-500 transition">NEXT QUESTION</button>
                 </div>
             `;
 
-            // 2. Add buttons using JavaScript (this ignores apostrophes in the data)
-            const optionsContainer = document.getElementById('options-container');
+            const optionsList = document.getElementById('options-list');
+
+            // 2. The Safe Injection: We don't use 'onclick' in the string!
             q.Options.forEach(opt => {
                 const btn = document.createElement('button');
-                btn.className = "option-btn w-full text-left p-4 rounded-lg border border-slate-600 hover:bg-slate-700 transition-all";
-                btn.textContent = opt;
+                btn.className = "w-full text-left p-4 rounded-xl border border-slate-600 bg-slate-700/50 hover:bg-slate-700 transition-all";
+                btn.textContent = opt; // Safe way to handle quotes/apostrophes
                 
-                // This is the "Magic" part: we pass the data safely as a variable, not a string
-                btn.onclick = () => handleAnswer(btn, opt, q.CorrectAnswer, q.Explanation);
-                optionsContainer.appendChild(btn);
+                // Use an Event Listener instead of an 'onclick' attribute
+                btn.addEventListener('click', () => {
+                    processSelection(btn, opt, q.CorrectAnswer, q.Explanation);
+                });
+                
+                optionsList.appendChild(btn);
+            });
+
+            document.getElementById('next-btn').addEventListener('click', () => {
+                currentIndex++;
+                if (currentIndex < currentQuestions.length) renderQuestion();
+                else showFinal();
             });
         }
 
-        function handleAnswer(selectedBtn, selectedOpt, correctOpt, explanation) {
-            const buttons = document.querySelectorAll('.option-btn');
-            buttons.forEach(b => b.disabled = true); // Stop double-clicking
-
-            const feedback = document.getElementById('feedback');
+        function processSelection(selectedBtn, selectedText, correctText, explanationText) {
+            // Disable all buttons immediately
+            document.querySelectorAll('#options-list button').forEach(b => b.disabled = true);
+            
+            const feedback = document.getElementById('feedback-area');
             feedback.classList.remove('hidden');
 
-            if (selectedOpt === correctOpt) {
+            if (selectedText === correctText) {
                 score++;
-                selectedBtn.classList.add('bg-green-600', 'border-green-500', 'text-white');
-                feedback.className = "mt-6 p-4 rounded-lg border border-green-500 bg-green-900/20 text-green-100";
-                feedback.innerHTML = `<p class="font-bold">✅ Correct!</p>`;
+                selectedBtn.classList.add('border-green-500', 'bg-green-900/30', 'text-green-400');
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-green-500/50 bg-green-500/10 text-green-100";
+                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-green-400">✅ Correct!</p>`;
             } else {
-                selectedBtn.classList.add('bg-red-600', 'border-red-500', 'text-white');
-                feedback.className = "mt-6 p-4 rounded-lg border border-red-500 bg-red-900/20 text-red-100";
-                feedback.innerHTML = `<p class="font-bold">❌ Incorrect. The answer was: ${correctOpt}</p>`;
+                selectedBtn.classList.add('border-red-500', 'bg-red-900/30', 'text-red-400');
+                feedback.className = "mt-8 p-6 rounded-xl border-2 border-red-500/50 bg-red-500/10 text-red-100";
+                feedback.innerHTML = `<p class="font-bold text-xl mb-2 text-red-400">❌ Incorrect.</p>
+                                    <p class="text-sm opacity-80 mb-2">Answer: ${correctText}</p>`;
             }
 
-            // This will finally show the explanation without crashing
-            feedback.innerHTML += `<div class="mt-2 pt-2 border-t border-slate-600 text-sm italic"><strong>Why?</strong> ${explanation}</div>`;
+            // This will finally show the explanation because it's handled as a variable, not HTML text
+            feedback.innerHTML += `<div class="mt-4 pt-4 border-t border-slate-600 italic text-slate-300">
+                                        <strong>Why?</strong> ${explanationText}
+                                </div>`;
+            
             document.getElementById('next-btn').classList.remove('hidden');
         }
 
-        function nextQuestion() {
-            currentIndex++;
-            if (currentIndex < currentQuestions.length) {
-                renderQuestion();
-            } else {
-                document.getElementById('quiz-container').innerHTML = `<h2 class="text-2xl font-bold text-center">Score: ${score}/${currentQuestions.length}</h2>`;
-            }
+        function showFinal() {
+            document.getElementById('quiz-container').innerHTML = `
+                <div class="text-center p-10 bg-slate-800 rounded-2xl border border-slate-700">
+                    <h2 class="text-3xl font-bold mb-4">Exam Complete</h2>
+                    <p class="text-5xl text-orange-500 font-bold mb-8">${score} / ${currentQuestions.length}</p>
+                    <button onclick="location.reload()" class="bg-slate-700 px-8 py-3 rounded-lg">Try Again</button>
+                </div>
+            `;
         }
 
         fetchQuestions();
