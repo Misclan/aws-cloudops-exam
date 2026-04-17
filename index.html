@@ -332,23 +332,43 @@
 
             async function fetchQuestions() {
                 try {
+                    console.log('Fetching from:', API_URL);
                     const response = await fetch(API_URL);
                     let data = await response.json();
                     
-                    // Handle double-stringified JSON
-                    if (typeof data === 'string') {
+                    console.log('Step 1 - Raw response type:', typeof data);
+                    console.log('Step 1 - Raw response:', data);
+                    
+                    // Handle double (or triple!) stringified JSON
+                    let parseAttempts = 0;
+                    while (typeof data === 'string' && parseAttempts < 3) {
+                        console.log(`Parsing attempt ${parseAttempts + 1}...`);
                         data = JSON.parse(data);
+                        console.log(`After parse ${parseAttempts + 1}:`, typeof data, data);
+                        parseAttempts++;
                     }
                     
-                    console.log("Fetched Questions:", data);
-
+                    console.log('Final type:', typeof data, 'Is array?', Array.isArray(data));
+                    
+                    if (!Array.isArray(data)) {
+                        throw new Error(`Expected array, got ${typeof data}`);
+                    }
+                    
+                    if (data.length === 0) {
+                        throw new Error('No questions in array');
+                    }
+                    
+                    console.log(`✅ Loaded ${data.length} questions`);
+                    
                     // Shuffle questions
                     const shuffled = data.sort(() => Math.random() - 0.5);
                     setQuestions(shuffled);
                     setLoading(false);
                 } catch (error) {
-                    console.error('Failed to fetch questions:', error);
+                    console.error('❌ Failed to fetch questions:', error);
+                    console.error('Error message:', error.message);
                     setLoading(false);
+                    alert(`Failed to load questions: ${error.message}\n\nCheck browser console for details.`);
                 }
             }
 
