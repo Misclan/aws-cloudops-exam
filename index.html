@@ -24,123 +24,155 @@
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
 
-        let questions = [];
-        let currentIndex = 0;
-        let score = 0;
-
         async function fetchQuestions() {
             try {
+                console.log('Fetching from:', API_URL);
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle double-stringified Lambda body
-                if (typeof data === 'string') data = JSON.parse(data);
+                console.log('Response type:', typeof data);
                 
-                // Sort by ID so it's not random every time
-                questions = data.sort((a, b) => a.QuestionID - b.QuestionID);
+                // Handle double-stringified JSON
+                while (typeof data === 'string') {
+                    console.log('Parsing stringified JSON...');
+                    data = JSON.parse(data);
+                }
                 
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('quiz-content').classList.remove('hidden');
-                renderQuestion();
+                console.log('Loaded', data.length, 'questions');
+                displayQuestions(data);
             } catch (error) {
-                console.error("Link Failure:", error);
+                console.error('Fetch error:', error);
+                document.getElementById('loading').innerHTML = 
+                    `<p class="text-red-400">Error: ${error.message}<br>Check console for details.</p>`;
             }
         }
 
-            function displayQuestions(questions) {
-                const container = document.getElementById('quiz-content');
-                const loading = document.getElementById('loading');
-                
-                loading.classList.add('hidden');
-                container.classList.remove('hidden');
+        function displayQuestions(questions) {
+            const container = document.getElementById('quiz-content');
+            const loading = document.getElementById('loading');
+            
+            loading.classList.add('hidden');
+            container.classList.remove('hidden');
 
-                const shuffled = questions.sort(() => 0.5 - Math.random());
-                let currentQ = 0;
-                let score = 0;
-                let answered = false;
+            const shuffled = questions.sort(() => 0.5 - Math.random());
+            let currentQ = 0;
+            let score = 0;
+            let answered = false;
             
             function renderQuestion() {
-                const q = questions[currentIndex];
-                const content = document.getElementById('quiz-content');
+                const q = shuffled[currentQ];
+                answered = false;
                 
-                // Clear and build the shell
-                content.innerHTML = `
-                    <div class="space-y-6">
-                        <div class="flex justify-between text-[10px] font-mono text-slate-500 uppercase">
-                            <span>Progress: ${currentIndex + 1} / ${questions.length}</span>
-                            <span>Score: ${score}</span>
+                container.innerHTML = `
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
+                            <span class="text-orange-500 font-bold">Question ${currentQ + 1} of ${shuffled.length}</span>
+                            <span class="text-slate-400">Score: ${score}/${currentQ || 1}</span>
                         </div>
-                        <h2 id="question-text" class="text-xl font-bold leading-tight"></h2>
-                        <div id="options-list" class="grid gap-3"></div>
-                        <div id="feedback" class="hidden p-5 rounded-xl border-2 mt-6"></div>
-                        <button id="next-btn" class="hidden w-full bg-orange-600 mt-6 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-orange-500 transition-all">Next Task</button>
+                        <h3 class="text-xl font-semibold mb-6" id="qtext"></h3>
+                        <div id="options" class="space-y-3 mb-6"></div>
+                        <div id="feedback" class="hidden mt-6 p-4 rounded-lg"></div>
+                        <button id="nextBtn" class="hidden w-full mt-6 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                            ${currentQ < shuffled.length - 1 ? 'Next Question' : 'Show Results'}
+                        </button>
                     </div>
                 `;
-
-                // USE textContent for the question to avoid 'SyntaxError'
-                document.getElementById('question-text').textContent = q.QuestionText;
-
-                const list = document.getElementById('options-list');
-                q.Options.forEach(option => {
+                
+                // Set question text safely
+                document.getElementById('qtext').textContent = q.QuestionText;
+                
+                // Create option buttons
+                const optionsDiv = document.getElementById('options');
+                q.Options.forEach((opt, idx) => {
                     const btn = document.createElement('button');
-                    btn.className = "w-full text-left p-4 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 hover:border-slate-500 transition-all text-sm";
-                    btn.textContent = option; // Safely handles 's and special chars
-                    
-                    btn.onclick = () => checkAnswer(btn, option, q.CorrectAnswer, q.Explanation);
-                    list.appendChild(btn);
+                    btn.className = 'w-full text-left p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent';
+                    btn.textContent = opt;
+                    btn.onclick = () => checkAnswer(opt, q.CorrectAnswer, q.Explanation);
+                    optionsDiv.appendChild(btn);
                 });
             }
             
-            function checkAnswer(selectedBtn, choice, correct, why) {
+            function checkAnswer(selected, correct, explanation) {
+                if (answered) return;
+                answered = true;
+                
+                const isCorrect = selected === correct;
+                if (isCorrect) score++;
+                
+                // Update all buttons
+                const buttons = document.querySelectorAll('#options button');
+                buttons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-60', 'cursor-not-allowed');
+                    
+                    if (btn.textContent === correct) {
+                        btn.classList.remove('border-transparent');
+                        btn.classList.add('border-green-400', 'bg-green-900');
+                    }
+                    
+                    if (btn.textContent === selected && !isCorrect) {
+                        btn.classList.remove('border-transparent');
+                        btn.classList.add('border-red-400', 'bg-red-900');
+                    }
+                });
+                
+                // Show feedback
                 const feedback = document.getElementById('feedback');
-                const nextBtn = document.getElementById('next-btn');
-                const allBtns = document.querySelectorAll('#options-list button');
-
-                // Lock interaction
-                allBtns.forEach(b => b.disabled = true);
-                feedback.classList.remove('hidden');
-
-                const isRight = choice === correct;
-
-                if (isRight) {
-                    score++;
-                    selectedBtn.classList.add('border-green-500', 'bg-green-500/10', 'text-green-400');
-                    feedback.className = "p-5 rounded-xl border-2 border-green-500/30 bg-green-900/20 mt-6";
-                    feedback.innerHTML = `<p class="font-bold text-green-400 mb-1">✅ Optimal Solution</p>`;
-                } else {
-                    selectedBtn.classList.add('border-red-500', 'bg-red-900/20', 'text-red-400');
-                    feedback.className = "p-5 rounded-xl border-2 border-red-500/30 bg-red-900/20 mt-6";
-                    feedback.innerHTML = `<p class="font-bold text-red-400 mb-1">❌ Inefficient Path</p>
-                                        <p class="text-xs text-slate-400 mb-2 underline">Correct: ${correct}</p>`;
+                feedback.className = `mt-6 p-4 rounded-lg ${isCorrect ? 'bg-green-900/30 border-2 border-green-400' : 'bg-red-900/30 border-2 border-red-400'}`;
+                
+                const feedbackTitle = document.createElement('p');
+                feedbackTitle.className = 'font-bold text-lg mb-2';
+                feedbackTitle.textContent = isCorrect ? '✅ Correct!' : '❌ Incorrect';
+                feedback.appendChild(feedbackTitle);
+                
+                if (!isCorrect) {
+                    const correctAnswer = document.createElement('p');
+                    correctAnswer.className = 'mb-2';
+                    correctAnswer.innerHTML = 'The correct answer was: <strong></strong>';
+                    correctAnswer.querySelector('strong').textContent = correct;
+                    feedback.appendChild(correctAnswer);
                 }
-
-                // Safely add the explanation
-                const expText = document.createElement('p');
-                expText.className = "text-sm text-slate-300 italic border-t border-slate-700 mt-3 pt-3";
-                expText.textContent = why;
-                feedback.appendChild(expText);
-
+                
+                const exp = document.createElement('p');
+                exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
+                exp.textContent = explanation;
+                feedback.appendChild(exp);
+                
+                // Show next button
+                const nextBtn = document.getElementById('nextBtn');
                 nextBtn.classList.remove('hidden');
                 nextBtn.onclick = () => {
-                    currentIndex++;
-                    if (currentIndex < questions.length) renderQuestion();
-                    else showFinal();
+                    currentQ++;
+                    if (currentQ < shuffled.length) {
+                        renderQuestion();
+                    } else {
+                        showResults();
+                    }
                 };
             }
             
-            function showFinal() {
-    const container = document.getElementById('quiz-container');
-    const percent = Math.round((score / questions.length) * 100);
-    container.innerHTML = `
-        <div class="text-center p-10">
-            <h2 class="text-2xl font-black mb-2 uppercase">Exam Complete</h2>
-            <div class="text-7xl font-black text-orange-500 my-8">${score} / ${questions.length}</div>
-            <p class="text-xl text-slate-400 mb-10">${percent}% Accuracy</p>
-            <button onclick="location.reload()" class="bg-slate-700 px-10 py-4 rounded-xl font-bold hover:bg-slate-600 transition-all">RETRY EXAM</button>
-        </div>
-    `;
-}
+            function showResults() {
+                const percentage = Math.round((score / shuffled.length) * 100);
+                let message = '';
+                if (percentage >= 80) message = 'Excellent! You\'re ready! 🎉';
+                else if (percentage >= 60) message = 'Good job! Keep practicing. 💪';
+                else message = 'Keep studying. You\'ll get there! 📚';
+                
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <h2 class="text-3xl font-bold mb-4">Exam Complete!</h2>
+                        <div class="text-6xl font-bold text-orange-500 my-6">${score} / ${shuffled.length}</div>
+                        <p class="text-2xl text-slate-300 mb-4">${percentage}%</p>
+                        <p class="text-lg text-slate-400 mb-8">${message}</p>
+                        <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-8 py-3 rounded-lg font-semibold">
+                            Try Again
+                        </button>
+                    </div>
+                `;
             }
+            
+            renderQuestion();
+        }
 
         fetchQuestions();
     </script>
