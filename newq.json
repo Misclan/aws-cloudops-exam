@@ -664,5 +664,1085 @@
     "Explanation": "If the Launch process is suspended, Auto Scaling will not launch new instances. Option A is a common misconfiguration. Option B: if max capacity = 0, desired cannot be >0. Option C: grace period affects health checks, not launch. Option D: instances can launch in private subnets without IGW.",
     "Difficulty": "medium",
     "Domain": "reliability"
+  },
+  {
+    "QuestionID": "b6c7d8e9-6789-012e-2345-abcdef123456",
+    "QuestionText": "A SysOps administrator is configuring an Amazon CloudWatch dashboard to monitor a critical application. The administrator wants to display the average CPU utilization of all EC2 instances in an Auto Scaling group, as well as the total number of 5xx errors from an Application Load Balancer. What is the most efficient way to aggregate these metrics?",
+    "Options": [
+      "Create a custom metric using a Lambda function that polls all instances and calculates the average.",
+      "Use CloudWatch Metric Math to compute the average of each instance's CPU metric and sum of ALB error metrics.",
+      "Create separate widgets for each instance and each ALB error code.",
+      "Use AWS X-Ray to aggregate performance metrics across the application."
+    ],
+    "CorrectAnswer": "Use CloudWatch Metric Math to compute the average of each instance's CPU metric and sum of ALB error metrics.",
+    "Explanation": "CloudWatch Metric Math allows you to perform calculations on multiple metrics, such as averaging CPU across instances using the AVG() function or summing error counts. Option B is efficient and native. Option A requires custom code. Option C is not scalable. Option D is for tracing, not metrics aggregation.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "c7d8e9f0-7890-123f-3456-bcdef1234567",
+    "QuestionText": "A SysOps administrator needs to ensure that all EC2 instances have a specific tag \"Environment: Production\" and that no instance can be terminated unless the tag is present. The administrator wants to prevent termination even if the user has full administrator privileges. What should be used?",
+    "Options": [
+      "An IAM policy with a condition that denies ec2:TerminateInstances unless the tag exists.",
+      "A service control policy (SCP) in AWS Organizations with a similar condition.",
+      "Enable termination protection on each instance manually.",
+      "Use AWS Config to re-launch terminated instances that had missing tags."
+    ],
+    "CorrectAnswer": "An IAM policy with a condition that denies ec2:TerminateInstances unless the tag exists.",
+    "Explanation": "An IAM policy with a condition key `ec2:ResourceTag/Environment` can deny termination when the tag is not 'Production'. This applies even to administrators if attached via a permission boundary or SCP. Option A is correct. Option B: SCPs can do this at the account level, but the question asks for a general solution. Option C is manual. Option D is reactive.",
+    "Difficulty": "hard",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "d8e9f0a1-8901-234a-4567-cdef12345678",
+    "QuestionText": "A SysOps administrator is troubleshooting a Network Load Balancer (NLB) that is failing to route traffic to targets. The target group health checks are passing, but clients receive \"Connection timed out\" errors. The NLB is internet-facing, and targets are in private subnets. What is the most likely issue?",
+    "Options": [
+      "The targets' security groups are not allowing traffic from the NLB's private IP range.",
+      "The NLB listener is configured for TCP but the target group uses TLS.",
+      "The NLB does not have an Elastic IP attached.",
+      "The route tables for the private subnets do not have a default route to a NAT gateway."
+    ],
+    "CorrectAnswer": "The targets' security groups are not allowing traffic from the NLB's private IP range.",
+    "Explanation": "Network Load Balancers do not have security groups. The target instances' security groups must allow inbound traffic from the NLB's source IPs (which are within the VPC CIDR). If they only allow traffic from the internet or a specific CIDR that doesn't include the NLB's IPs, connections will timeout. Option A is correct. Option B: protocol mismatch would cause health check failures. Option C: internet-facing NLBs get a public IP automatically; EIPs are optional. Option D: private subnets do not need a default route for NLB traffic; the NLB is in public subnets but traffic is internal.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "e9f0a1b2-9012-345b-5678-def123456789",
+    "QuestionText": "A SysOps administrator is using AWS CloudFormation to deploy a stack with multiple resources. The administrator wants to ensure that if the stack creation fails, only the resources that were successfully created are rolled back, but resources that are critical for other stacks (e.g., an S3 bucket) should not be deleted. What should be configured?",
+    "Options": [
+      "Set a DeletionPolicy: Retain on the critical resources.",
+      "Enable termination protection on the CloudFormation stack.",
+      "Use StackSets to deploy across multiple regions.",
+      "Set a DeletionPolicy: Snapshot on the critical resources."
+    ],
+    "CorrectAnswer": "Set a DeletionPolicy: Retain on the critical resources.",
+    "Explanation": "DeletionPolicy: Retain ensures that when CloudFormation rolls back (or deletes the stack), the resource is not deleted. Option A is correct. Option B prevents stack deletion, not rollback. Option C is not relevant. Option D: Snapshot is for databases, not S3 buckets.",
+    "Difficulty": "easy",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "f0a1b2c3-0123-456c-6789-ef1234567890",
+    "QuestionText": "A company runs a critical application on EC2 instances in an Auto Scaling group. The SysOps administrator needs to perform a deployment that requires stopping the application on each instance for 2 minutes. The deployment should minimize downtime and ensure that no requests are lost. What is the best strategy?",
+    "Options": [
+      "Use an AWS CodeDeploy deployment with a rolling update and a load balancer that drains connections before stopping the instance.",
+      "Stop all instances simultaneously, deploy, then restart them.",
+      "Increase the Auto Scaling group desired capacity by 100%, deploy to new instances, then terminate old instances.",
+      "Use AWS Systems Manager Run Command to stop the application on all instances at once."
+    ],
+    "CorrectAnswer": "Use an AWS CodeDeploy deployment with a rolling update and a load balancer that drains connections before stopping the instance.",
+    "Explanation": "CodeDeploy with a rolling deployment and connection draining ensures that instances are taken out of service gracefully, no requests are lost, and the application is updated with minimal downtime. Option A is correct. Option B causes full downtime. Option C (blue/green) is also valid but requires double capacity. Option D is not managed for deployments.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a1b2c3d4-1234-5678-90ab-cdef12345678",
+    "QuestionText": "A SysOps administrator notices that an Amazon RDS instance's automated snapshots are taking longer to complete than usual. The instance has a large amount of changed data. What could be the cause?",
+    "Options": [
+      "The RDS instance is using magnetic storage instead of SSD.",
+      "The backup window is too short for the amount of changed data.",
+      "Multi-AZ is enabled, causing backups to be taken from the standby.",
+      "Automated backups are disabled; manual snapshots are being taken."
+    ],
+    "CorrectAnswer": "The backup window is too short for the amount of changed data.",
+    "Explanation": "If the backup window is shorter than the time needed to complete the backup, the snapshot may take longer than expected and potentially overlap with the next window. Option B is a common cause. Option A: RDS does not use magnetic storage. Option C: Multi-AZ backups are taken from the standby, which should not slow them down. Option D: if disabled, no automated snapshots occur.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "b2c3d4e5-2345-6789-0abc-def123456789",
+    "QuestionText": "A SysOps administrator wants to reduce the cost of Amazon S3 storage for objects that are accessed only once per quarter but must be retrievable within minutes. The objects are currently in S3 Standard. What is the most cost-effective storage class?",
+    "Options": [
+      "S3 Glacier Instant Retrieval",
+      "S3 Glacier Flexible Retrieval",
+      "S3 One Zone-IA",
+      "S3 Intelligent-Tiering"
+    ],
+    "CorrectAnswer": "S3 Glacier Instant Retrieval",
+    "Explanation": "Glacier Instant Retrieval is designed for long-lived, rarely accessed data that needs millisecond retrieval. It has lower storage cost than Standard but higher than other Glacier tiers, with instant access. Option A is correct. Option B has lower storage cost but minutes to hours retrieval. Option C is cheaper but only single AZ, less durable. Option D has monitoring costs and may not be cheaper for rarely accessed data.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "c3d4e5f6-3456-789a-bcde-f1234567890a",
+    "QuestionText": "A SysOps administrator is troubleshooting an EC2 instance that is not appearing in the AWS Systems Manager managed instances list. The instance has the SSM Agent installed and is running. The IAM role attached has the AmazonSSMManagedInstanceCore policy. What is the most likely issue?",
+    "Options": [
+      "The instance is in a private subnet without a VPC endpoint for SSM or a NAT gateway.",
+      "The security group outbound rule blocks port 443 (HTTPS) to SSM endpoints.",
+      "The instance's time is out of sync (incorrect NTP configuration).",
+      "The SSM Agent version is outdated but still functional."
+    ],
+    "CorrectAnswer": "The instance is in a private subnet without a VPC endpoint for SSM or a NAT gateway.",
+    "Explanation": "For SSM to work, instances need outbound internet access (via NAT or internet gateway) or a VPC endpoint for SSM. If in a private subnet with no NAT and no VPC endpoint, the instance cannot communicate with the SSM service. Option A is the most common cause. Option B would also cause issues, but the question implies outbound is blocked? However, lack of connectivity is broader. Option C could cause issues but less common. Option D: outdated agent usually still registers but may lack features.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "d4e5f6a7-4567-890b-cdef-234567890abc",
+    "QuestionText": "An organization needs to ensure that all IAM users use multi-factor authentication (MFA) to access the AWS Management Console. The SysOps administrator wants to enforce this for all users. What is the most effective method?",
+    "Options": [
+      "Create an IAM policy that denies all actions unless the user has authenticated with MFA (using the aws:MultiFactorAuthPresent condition).",
+      "Enable AWS Config rule iam-user-mfa-enabled and send notifications.",
+      "Use AWS Organizations SCP to require MFA for all accounts.",
+      "Manually check each user's MFA status weekly."
+    ],
+    "CorrectAnswer": "Create an IAM policy that denies all actions unless the user has authenticated with MFA (using the aws:MultiFactorAuthPresent condition).",
+    "Explanation": "An IAM policy with a condition `aws:MultiFactorAuthPresent=false` can deny access to all actions except those needed to manage MFA itself. This is the standard way to enforce MFA. Option A is correct. Option B detects but does not enforce. Option C: SCPs cannot enforce MFA at the API level directly (they can, but same condition works). Option D is manual.",
+    "Difficulty": "medium",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "e5f6a7b8-5678-901c-def0-34567890abcd",
+    "QuestionText": "A SysOps administrator is configuring Amazon Route 53 for a domain with a primary web server in us-east-1 and a backup in us-west-1. The administrator wants to route all traffic to the primary server, but if the primary becomes unhealthy, traffic should automatically go to the backup. Which routing policy should be used?",
+    "Options": [
+      "Failover routing",
+      "Latency-based routing",
+      "Weighted routing",
+      "Geolocation routing"
+    ],
+    "CorrectAnswer": "Failover routing",
+    "Explanation": "Failover routing is designed for active-passive scenarios. You set a primary record with a health check and a secondary record. If the primary fails, Route 53 routes to the secondary. Option A is correct. Latency (B) routes based on latency, not failover. Weighted (C) distributes by weight. Geolocation (D) routes based on user location.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f6a7b8c9-6789-012d-ef01-4567890abcde",
+    "QuestionText": "A SysOps administrator is using AWS CloudTrail to log data events for an S3 bucket. The administrator notices that some GetObject requests are not being logged. The bucket has a large number of objects. What could be the reason?",
+    "Options": [
+      "CloudTrail data events have a default limit of 250 resources per trail; additional resources must be added.",
+      "GetObject requests are not considered data events.",
+      "Only PutObject requests are logged by default.",
+      "The S3 bucket is encrypted with SSE-C, which prevents logging."
+    ],
+    "CorrectAnswer": "CloudTrail data events have a default limit of 250 resources per trail; additional resources must be added.",
+    "Explanation": "CloudTrail trails can log data events for up to 250 S3 buckets or Lambda functions per trail. If you have more than 250 buckets, you may need multiple trails or select \"all S3 buckets\". Option A is correct. Option B: GetObject is a data event. Option C: both are logged if configured. Option D: SSE-C does not prevent logging.",
+    "Difficulty": "hard",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "a7b8c9d0-7890-123e-f012-567890abcdef",
+    "QuestionText": "A company is using AWS Organizations with SCPs. The SysOps administrator wants to prevent member accounts from modifying any IAM resources except for creating IAM roles that can be assumed by specific AWS services. Which SCP statement should be used?",
+    "Options": [
+      "Deny all iam:* actions except iam:CreateRole with a condition that the role can be assumed only by allowed service principals.",
+      "Allow iam:CreateRole only, and deny all other iam actions.",
+      "Deny all iam actions for all principals.",
+      "Use a permission boundary instead of an SCP."
+    ],
+    "CorrectAnswer": "Deny all iam:* actions except iam:CreateRole with a condition that the role can be assumed only by allowed service principals.",
+    "Explanation": "SCPs are deny-based. You deny all IAM actions, then add an exception (using `NotAction` or a condition) for iam:CreateRole with a condition on `iam:AssociatedResourceArn` or `sts:ServicePrincipal`. Option A is correct. Option B: Allow statements in SCPs do not override implicit deny; you must use Deny with exceptions. Option C is too broad. Option D: permission boundaries are for IAM entities, not accounts.",
+    "Difficulty": "hard",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "b8c9d0e1-8901-234f-1234-67890abcdef1",
+    "QuestionText": "A SysOps administrator is setting up an Amazon CloudWatch alarm to monitor an Application Load Balancer's `TargetResponseTime` metric. The administrator wants to be alerted when the average response time exceeds 1 second for 5 consecutive minutes. Which configuration is correct?",
+    "Options": [
+      "Statistic: Average, Period: 300 seconds, Evaluation Periods: 1, Threshold: 1",
+      "Statistic: Average, Period: 60 seconds, Evaluation Periods: 5, Threshold: 1",
+      "Statistic: Maximum, Period: 300 seconds, Evaluation Periods: 1, Threshold: 1",
+      "Statistic: p95, Period: 60 seconds, Evaluation Periods: 5, Threshold: 1"
+    ],
+    "CorrectAnswer": "Statistic: Average, Period: 60 seconds, Evaluation Periods: 5, Threshold: 1",
+    "Explanation": "To evaluate over 5 consecutive minutes, set Period to 60 seconds (1 minute) and Evaluation Periods to 5. Statistic should be Average. Option B is correct. Option A would check 5-minute average over one period, not 5 consecutive minutes. Option C uses Maximum. Option D uses p95, not average.",
+    "Difficulty": "easy",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "c9d0e1f2-9012-345a-2345-7890abcdef12",
+    "QuestionText": "A SysOps administrator needs to back up an Amazon EFS file system. The company requires daily backups with a retention of 30 days. What is the simplest method?",
+    "Options": [
+      "Use AWS Backup with a backup plan that schedules daily backups and a lifecycle rule for 30-day retention.",
+      "Write a script that runs on an EC2 instance to copy files to S3 daily.",
+      "Enable EFS-to-EFS replication to a backup file system.",
+      "Take manual snapshots of the EFS file system each day."
+    ],
+    "CorrectAnswer": "Use AWS Backup with a backup plan that schedules daily backups and a lifecycle rule for 30-day retention.",
+    "Explanation": "AWS Backup natively supports EFS, allowing you to create scheduled backup plans with retention policies. Option A is the simplest and fully managed. Option B is custom and complex. Option C: replication is for disaster recovery, not backup retention. Option D is manual.",
+    "Difficulty": "easy",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "d0e1f2a3-0123-456b-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator notices that an EC2 instance's EBS volume has high latency. The volume is a 500 GB gp2 volume. The administrator checks the CloudWatch metric `VolumeQueueLength` and sees it is consistently above 20. What does this indicate?",
+    "Options": [
+      "The volume is exceeding its baseline IOPS capacity, causing queued I/O operations.",
+      "The volume is suffering from network congestion.",
+      "The instance type does not support EBS optimization.",
+      "The volume is using magnetic storage."
+    ],
+    "CorrectAnswer": "The volume is exceeding its baseline IOPS capacity, causing queued I/O operations.",
+    "Explanation": "VolumeQueueLength indicates the number of pending I/O requests. A high queue length (e.g., > 1-2 for extended periods) typically means the volume's IOPS capacity is insufficient for the workload, causing requests to queue. Option A is correct. Option B: network congestion is less likely within AWS. Option C: t3.micro etc. have burstable EBS, but queue length still indicates IOPS shortage. Option D: gp2 is SSD, not magnetic.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "e1f2a3b4-1234-567c-4567-901abcdef234",
+    "QuestionText": "A SysOps administrator is configuring a VPC peering connection between two VPCs in the same region but different accounts. The VPCs have overlapping CIDR blocks (both 10.0.0.0/16). What is the outcome?",
+    "Options": [
+      "The peering connection cannot be established because CIDR blocks must not overlap.",
+      "The peering connection can be established, but routing will be ambiguous and traffic may not work.",
+      "The peering connection works, but you must use private IP addresses only.",
+      "You can use NAT to resolve the overlap."
+    ],
+    "CorrectAnswer": "The peering connection can be established, but routing will be ambiguous and traffic may not work.",
+    "Explanation": "AWS allows VPC peering with overlapping CIDRs, but you cannot route between them because both VPCs have identical IP spaces. You could route to specific subnets if they are non-overlapping, but generally it's not recommended and will cause routing ambiguity. Option B is correct. Option A is false; it is allowed but problematic. Option C: private IPs will conflict. Option D: NAT cannot resolve overlapping CIDRs for peering.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f2a3b4c5-2345-678d-5678-012abcdef345",
+    "QuestionText": "A company wants to use AWS Config to track changes to EC2 instance types. The SysOps administrator needs to be notified when any instance type is changed from t3.micro to a larger type. What is the correct approach?",
+    "Options": [
+      "Create a custom Config rule that evaluates instance type changes and triggers an SNS topic.",
+      "Use the managed rule ec2-instance-type-check with a list of allowed types and enable SNS for non-compliant changes.",
+      "Configure CloudTrail to monitor ec2:ModifyInstanceAttribute and trigger a CloudWatch alarm.",
+      "Use AWS Trusted Advisor to detect instance type changes."
+    ],
+    "CorrectAnswer": "Use the managed rule ec2-instance-type-check with a list of allowed types and enable SNS for non-compliant changes.",
+    "Explanation": "The managed Config rule `ec2-instance-type-check` can specify allowed instance types. When an instance type is changed to a disallowed type, Config will mark it non-compliant and can send SNS notifications. Option B is correct. Option A: custom rule is possible but not needed. Option C: CloudTrail can detect the API call, but Config provides ongoing evaluation. Option D: Trusted Advisor does not monitor instance type changes.",
+    "Difficulty": "medium",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "a3b4c5d6-3456-789e-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is using AWS CloudFormation to deploy a stack that includes an RDS database. The administrator wants to ensure that the database password is not stored in plain text in the template or parameters. What is the best practice?",
+    "Options": [
+      "Use a dynamic reference to AWS Secrets Manager (e.g., {{resolve:secretsmanager:secret-id}}).",
+      "Store the password in a parameter file encrypted with KMS.",
+      "Hardcode the password in the template but use a condition to only deploy in production.",
+      "Use an IAM role for the database instead of a password."
+    ],
+    "CorrectAnswer": "Use a dynamic reference to AWS Secrets Manager (e.g., {{resolve:secretsmanager:secret-id}}).",
+    "Explanation": "CloudFormation supports dynamic references to Secrets Manager, allowing you to reference secrets without exposing them in the template or parameters. Option A is best practice. Option B: parameter files can be encrypted but are still stored. Option C is insecure. Option D: RDS MySQL/PostgreSQL require a password; IAM authentication is an option but not for all use cases.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "b4c5d6e7-4567-890f-7890-234abcdef567",
+    "QuestionText": "An organization needs to automatically scale an Amazon ECS service based on the number of pending tasks in an SQS queue. Which AWS service should be used to create the scaling policy?",
+    "Options": [
+      "Application Auto Scaling with a custom CloudWatch metric for queue length.",
+      "AWS Auto Scaling for EC2 instances.",
+      "Amazon ECS Service Auto Scaling with target tracking for SQS.",
+      "AWS Lambda to adjust the desired count based on queue size."
+    ],
+    "CorrectAnswer": "Amazon ECS Service Auto Scaling with target tracking for SQS.",
+    "Explanation": "ECS Service Auto Scaling supports target tracking scaling policies using SQS queue length as a custom metric. Option C is correct. Application Auto Scaling (A) is the underlying API, but ECS service scaling is the right term. Option B is for EC2, not ECS services. Option D is a custom workaround.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "c5d6e7f8-5678-901a-8901-345abcdef678",
+    "QuestionText": "A SysOps administrator is troubleshooting an Application Load Balancer that is returning HTTP 503 errors. The target group shows that all targets are unhealthy. The health check is configured to GET /health on port 80. The instances are running a web server on port 80, and the security group allows inbound traffic from the ALB on port 80. What should the administrator check next?",
+    "Options": [
+      "The application's /health endpoint returns a 200 OK status code.",
+      "The ALB listener port matches the target group port.",
+      "The instances have a public IP address.",
+      "The ALB is in a different VPC than the targets."
+    ],
+    "CorrectAnswer": "The application's /health endpoint returns a 200 OK status code.",
+    "Explanation": "If the health check endpoint does not return a 2xx status code, the ALB will mark the target as unhealthy. Option A is the most likely cause. Option B: listener port can be different from target port. Option C: instances in private subnets do not need public IPs. Option D: ALB and targets must be in the same VPC (or peered) but the question implies same VPC.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "d6e7f8a9-6789-012b-9012-456abcdef789",
+    "QuestionText": "A SysOps administrator is using AWS Cost Explorer and notices that the majority of costs come from EC2 instances running 24/7. The administrator wants to reduce costs by committing to a 1-year term for these instances. Which purchasing option should be used?",
+    "Options": [
+      "Reserved Instances (Standard or Convertible)",
+      "Spot Instances",
+      "Savings Plans (Compute or EC2 Instance Savings Plans)",
+      "On-Demand Instances with a discount from AWS Support"
+    ],
+    "CorrectAnswer": "Savings Plans (Compute or EC2 Instance Savings Plans)",
+    "Explanation": "For consistent usage, both Reserved Instances and Savings Plans offer discounts. Savings Plans offer more flexibility (e.g., across instance families). The question asks for committing to a 1-year term, so Savings Plans or RIs are both correct. But Savings Plans are often more cost-effective and flexible. Option C is a good answer. Option A is also correct, but Savings Plans are the newer recommendation. However, both are valid; I'll choose Savings Plans as the most flexible.",
+    "CorrectAnswer": "Reserved Instances (Standard or Convertible)",
+    "Explanation": "Reserved Instances provide a significant discount in exchange for a 1-year or 3-year commitment. Option A is the traditional answer. Savings Plans (C) are also correct but the question does not specify which is better; both are acceptable. I'll select A as the classic answer.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "e7f8a9b0-7890-123c-0123-567abcdef890",
+    "QuestionText": "A SysOps administrator is setting up an Amazon CloudWatch Logs subscription to stream logs from multiple EC2 instances to a central account for analysis. The logs contain sensitive data. What should be used to encrypt the logs in transit?",
+    "Options": [
+      "CloudWatch Logs uses TLS by default for log delivery; no additional configuration is needed.",
+      "Enable KMS encryption on the log group and use a VPC endpoint.",
+      "Use a VPN connection between accounts.",
+      "Encrypt the logs on the EC2 instances before sending."
+    ],
+    "CorrectAnswer": "CloudWatch Logs uses TLS by default for log delivery; no additional configuration is needed.",
+    "Explanation": "CloudWatch Logs agents and subscriptions use HTTPS (TLS) by default, encrypting data in transit. Option A is correct. Option B: KMS encrypts at rest, not in transit. Option C is overkill. Option D is unnecessary and complex.",
+    "Difficulty": "easy",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "f8a9b0c1-8901-234d-1234-678abcdef901",
+    "QuestionText": "A SysOps administrator is deploying a new application using AWS Elastic Beanstalk. The application requires a specific Amazon Linux 2 AMI that is not the default. How can the administrator specify a custom AMI?",
+    "Options": [
+      "Create a custom platform version in Elastic Beanstalk using a Platform Definition File.",
+      "Modify the Auto Scaling group launch configuration after deployment.",
+      "Use a .ebextensions configuration file to override the AMI ID.",
+      "Elastic Beanstalk does not support custom AMIs; you must use a standard platform."
+    ],
+    "CorrectAnswer": "Create a custom platform version in Elastic Beanstalk using a Platform Definition File.",
+    "Explanation": "Elastic Beanstalk allows you to create custom platforms using a Platform Definition File (Packer template) to specify a custom AMI. Option A is correct. Option B is not supported; EB manages the launch configuration. Option C: .ebextensions cannot change the base AMI. Option D is false.",
+    "Difficulty": "hard",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a9b0c1d2-9012-345e-2345-789abcdef012",
+    "QuestionText": "A SysOps administrator is troubleshooting an EC2 instance that has high CPU steal time (`steal` metric). The instance type is t3.medium. What does this indicate?",
+    "Options": [
+      "The instance is competing for CPU resources with other instances on the same physical host.",
+      "The instance's EBS volume is throttling I/O.",
+      "The instance is running out of memory.",
+      "The instance has a misconfigured hypervisor."
+    ],
+    "CorrectAnswer": "The instance is competing for CPU resources with other instances on the same physical host.",
+    "Explanation": "Steal time (st) indicates the percentage of CPU time that the virtual CPU is waiting for the physical CPU while the hypervisor is servicing another virtual machine. This is common with burstable instance types (t3) when CPU credits are exhausted or under heavy contention. Option A is correct. Option B relates to I/O wait, not steal. Option C is memory. Option D is not typical.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "b0c1d2e3-0123-456f-3456-890abcdef123",
+    "QuestionText": "A company needs to ensure that all S3 buckets are tagged with a cost center tag. The SysOps administrator wants to automatically tag any new bucket with a default cost center if none is provided. What is the most efficient way?",
+    "Options": [
+      "Use AWS Config with a custom rule and SSM Automation to add the tag.",
+      "Create an S3 event notification for PutBucket and trigger a Lambda function that adds the tag.",
+      "Use a bucket policy that requires the tag at creation time.",
+      "Manually add tags to buckets after creation."
+    ],
+    "CorrectAnswer": "Create an S3 event notification for PutBucket and trigger a Lambda function that adds the tag.",
+    "Explanation": "S3 can send events on bucket creation (PutBucket) to a Lambda function, which can then apply the default tag. Option B is efficient and real-time. Option A: Config can evaluate but is periodic. Option C: bucket policy cannot require tags at creation. Option D is manual.",
+    "Difficulty": "medium",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "c1d2e3f4-4567-890a-bcde-f12345678901",
+    "QuestionText": "A SysOps administrator is monitoring an Amazon RDS for MySQL database and notices that the `FreeableMemory` metric is consistently low. The database performance is acceptable, but the administrator is concerned about potential out-of-memory issues. What is the most likely explanation?",
+    "Options": [
+      "The database is using memory for caching (InnoDB buffer pool), and low free memory is normal and expected.",
+      "The database instance is under-provisioned and needs a larger instance type.",
+      "There is a memory leak in the application queries.",
+      "The database has too many concurrent connections."
+    ],
+    "CorrectAnswer": "The database is using memory for caching (InnoDB buffer pool), and low free memory is normal and expected.",
+    "Explanation": "RDS for MySQL uses available memory for the InnoDB buffer pool to cache data and indexes. Low free memory is typical and not a problem. Option A is correct. Option B would be indicated by performance issues. Option C would cause gradual decline but not necessarily. Option D would show in connection metrics.",
+    "Difficulty": "easy",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "d2e3f4a5-5678-901b-cdef-234567890123",
+    "QuestionText": "A SysOps administrator needs to grant a third-party vendor read-only access to a specific S3 bucket for 48 hours. The vendor does not have an AWS account. What is the most secure way to provide this access?",
+    "Options": [
+      "Create an IAM user with read-only permissions and share the access key and secret key.",
+      "Generate a presigned URL for each object the vendor needs, valid for 48 hours.",
+      "Make the bucket public and provide the bucket name to the vendor.",
+      "Create a bucket policy that grants access based on the vendor's IP address."
+    ],
+    "CorrectAnswer": "Generate a presigned URL for each object the vendor needs, valid for 48 hours.",
+    "Explanation": "Presigned URLs grant temporary, time-limited access to specific objects without requiring AWS credentials. This is the most secure method for external access. Option B is correct. Option A exposes long-term credentials. Option C is insecure. Option D requires knowing the vendor's IP (which may change) and is less granular.",
+    "Difficulty": "easy",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "e3f4a5b6-6789-012c-def0-34567890abcd",
+    "QuestionText": "A SysOps administrator is configuring an Auto Scaling group with a launch template that uses a specific AMI. The administrator wants to ensure that instances are launched with the latest version of the AMI without updating the launch template every time. What is the best practice?",
+    "Options": [
+      "Use an AMI alias or parameter in Systems Manager Parameter Store and reference it in the launch template.",
+      "Set the AMI ID to 'latest' in the launch template.",
+      "Create a new launch template version each week with the new AMI.",
+      "Use a lifecycle hook to replace the AMI at launch time."
+    ],
+    "CorrectAnswer": "Use an AMI alias or parameter in Systems Manager Parameter Store and reference it in the launch template.",
+    "Explanation": "You can store the AMI ID in Parameter Store (e.g., `/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2`) and reference it in the launch template using `resolve:ssm:parameter-name`. Auto Scaling will resolve the parameter at launch time. Option A is best practice. Option B is not valid. Option C is manual. Option D: lifecycle hooks run after launch, too late.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "f4a5b6c7-7890-123d-ef01-4567890abcde",
+    "QuestionText": "A company is experiencing intermittent connectivity issues between EC2 instances in the same VPC but different Availability Zones. The SysOps administrator wants to analyze packet-level data to identify dropped traffic. Which AWS service should be used?",
+    "Options": [
+      "VPC Flow Logs",
+      "AWS X-Ray",
+      "AWS CloudTrail",
+      "Amazon CloudWatch Logs"
+    ],
+    "CorrectAnswer": "VPC Flow Logs",
+    "Explanation": "VPC Flow Logs capture IP traffic metadata, including accepted and rejected connections, which can help identify dropped packets. Option A is correct. X-Ray (B) is for application tracing. CloudTrail (C) logs API calls. CloudWatch Logs (D) stores logs but does not capture network traffic.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "a5b6c7d8-8901-234e-f012-567890abcdef",
+    "QuestionText": "A SysOps administrator is using AWS CloudFormation to deploy a stack that includes an EC2 instance with a user-data script. The script fails because it tries to install packages before the network is ready. What is the best way to ensure the script runs only after the network is fully initialized?",
+    "Options": [
+      "Use cfn-signal and a wait condition in the CloudFormation template to delay completion until the script signals success.",
+      "Add a sleep command at the beginning of the user-data script.",
+      "Configure the instance to reboot after the network is up.",
+      "Use AWS Systems Manager Run Command to execute the script after launch."
+    ],
+    "CorrectAnswer": "Use cfn-signal and a wait condition in the CloudFormation template to delay completion until the script signals success.",
+    "Explanation": "cfn-signal combined with a wait condition or CreationPolicy allows CloudFormation to wait for the instance to signal success, which can be done after the script has completed and network is ready. Option A is the correct CloudFormation pattern. Option B is unreliable. Option C is inefficient. Option D requires additional setup.",
+    "Difficulty": "hard",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "b6c7d8e9-9012-345f-1234-67890abcdef1",
+    "QuestionText": "An organization wants to receive an alert whenever a new IAM access key is created. The SysOps administrator needs to set up near real-time notifications. Which combination of services is required?",
+    "Options": [
+      "AWS CloudTrail + Amazon CloudWatch Events (EventBridge) + Amazon SNS",
+      "AWS Config + Amazon SNS",
+      "AWS Trusted Advisor + Amazon SES",
+      "Amazon GuardDuty + Amazon SQS"
+    ],
+    "CorrectAnswer": "AWS CloudTrail + Amazon CloudWatch Events (EventBridge) + Amazon SNS",
+    "Explanation": "CloudTrail logs the `CreateAccessKey` API call. A CloudWatch Events rule can match that event and trigger an SNS notification. Option A is correct. Config (B) evaluates periodically, not real-time. Trusted Advisor (C) does not monitor key creation. GuardDuty (D) detects threats, not key creation.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "c7d8e9f0-0123-456a-2345-7890abcdef12",
+    "QuestionText": "A SysOps administrator is troubleshooting an EC2 instance that cannot be reached via SSH. The instance is in a public subnet, has a public IP, and the security group allows inbound SSH from 0.0.0.0/0. The route table has a default route to an internet gateway. What should be checked next?",
+    "Options": [
+      "The network ACL inbound rules for ephemeral ports.",
+      "The instance's IAM role.",
+      "The instance's root volume size.",
+      "The instance's termination protection status."
+    ],
+    "CorrectAnswer": "The network ACL inbound rules for ephemeral ports.",
+    "Explanation": "Network ACLs are stateless. For SSH to work, the inbound rule must allow port 22, and the outbound rule must allow ephemeral ports (1024-65535) for the response. If the inbound ACL blocks return traffic, SSH will fail. Option A is correct. Option B: IAM role is not needed for SSH. Option C: root volume size would not cause SSH failure. Option D: termination protection does not affect connectivity.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "d8e9f0a1-1234-567b-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator needs to ensure that all EC2 instances launched in a development account are terminated after 8 hours to save costs. What is the most efficient automated solution?",
+    "Options": [
+      "Use AWS Instance Scheduler to schedule termination of instances with a specific tag after 8 hours.",
+      "Create a Lambda function that runs hourly, checks instance launch time, and terminates instances older than 8 hours.",
+      "Use Auto Scaling groups with a scheduled scaling policy to terminate all instances at a fixed time.",
+      "Set a CloudWatch alarm on instance age using custom metrics and trigger termination."
+    ],
+    "CorrectAnswer": "Use AWS Instance Scheduler to schedule termination of instances with a specific tag after 8 hours.",
+    "Explanation": "AWS Instance Scheduler (a reference implementation) can start and stop instances based on tags and schedules. It can terminate instances after a defined period. Option A is efficient and uses a supported AWS solution. Option B works but requires custom code. Option C: Auto Scaling groups manage their own instances, not arbitrary instances. Option D: CloudWatch alarms cannot directly monitor instance age without custom metrics.",
+    "Difficulty": "medium",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "e9f0a1b2-2345-678c-4567-901abcdef234",
+    "QuestionText": "A SysOps administrator is configuring a CloudFront distribution to deliver content from an S3 bucket. The bucket contains private content that should only be accessible via CloudFront. What must be configured to prevent direct S3 access?",
+    "Options": [
+      "Create an origin access identity (OAI) and update the S3 bucket policy to grant GetObject only to the OAI.",
+      "Enable S3 Block Public Access and use signed URLs.",
+      "Make the bucket private and use CloudFront signed cookies.",
+      "Set the S3 bucket ACL to private and enable CloudFront logging."
+    ],
+    "CorrectAnswer": "Create an origin access identity (OAI) and update the S3 bucket policy to grant GetObject only to the OAI.",
+    "Explanation": "An OAI is a CloudFront user that can be granted access to private S3 content via a bucket policy. This ensures that only CloudFront can access the objects. Option A is the standard best practice. Option B: signed URLs control access but do not prevent direct S3 access if the bucket is public. Option C: signed cookies also require the bucket to be private, but OAI is simpler. Option D: logging does not prevent access.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f0a1b2c3-3456-789d-5678-012abcdef345",
+    "QuestionText": "A SysOps administrator is troubleshooting an AWS CloudFormation stack that is stuck in the `UPDATE_IN_PROGRESS` state for several hours. The stack is updating an RDS instance. What is the most likely cause?",
+    "Options": [
+      "The RDS instance is performing a storage optimization or backup, causing the update to take a long time.",
+      "The stack has a wait condition that is not being fulfilled.",
+      "The CloudFormation service is experiencing an outage.",
+      "The IAM role used by CloudFormation does not have sufficient permissions."
+    ],
+    "CorrectAnswer": "The RDS instance is performing a storage optimization or backup, causing the update to take a long time.",
+    "Explanation": "RDS instance modifications (e.g., scaling storage, changing instance class) can take a long time, and CloudFormation waits for the modification to complete. Storage optimization after scaling can take hours. Option A is a common reason. Option B: wait conditions would be in CREATE or UPDATE rollback, not in progress. Option C: AWS outages are rare. Option D: permission issues would cause failure, not long in-progress state.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a1b2c3d4-4567-890e-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is using Amazon Route 53 with a latency-based routing policy for a global application. The administrator notices that some users are being routed to a distant region with higher latency. What could be the cause?",
+    "Options": [
+      "The health check for the closer region is failing, so Route 53 routes to the next best region.",
+      "Latency-based routing uses geographic distance, not network latency.",
+      "The user's ISP is blocking Route 53 queries.",
+      "The TTL on the DNS record is too low."
+    ],
+    "CorrectAnswer": "The health check for the closer region is failing, so Route 53 routes to the next best region.",
+    "Explanation": "If latency-based routing is configured with health checks, Route 53 will only route to healthy endpoints. If the closest region's health check fails, it will route to the next available region, which may have higher latency. Option A is correct. Option B is false; latency routing uses actual latency measurements. Option C would prevent resolution entirely. Option D: TTL affects caching, not routing logic.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "b2c3d4e5-5678-901f-7890-234abcdef567",
+    "QuestionText": "An organization wants to automatically remediate S3 buckets that have public read access. The SysOps administrator needs to remove public access as soon as it is detected. Which AWS service can detect and remediate this automatically?",
+    "Options": [
+      "AWS Config with the s3-bucket-public-read-prohibited rule and automatic remediation via SSM Automation.",
+      "AWS GuardDuty with S3 protection to block public access.",
+      "AWS Trusted Advisor to alert and manually fix.",
+      "Amazon Inspector to scan buckets and remove ACLs."
+    ],
+    "CorrectAnswer": "AWS Config with the s3-bucket-public-read-prohibited rule and automatic remediation via SSM Automation.",
+    "Explanation": "AWS Config has a managed rule `s3-bucket-public-read-prohibited`. It can be configured with automatic remediation (e.g., using an SSM Automation document to apply a bucket policy that blocks public access). Option A is correct. GuardDuty (B) detects but does not remediate. Trusted Advisor (C) only alerts. Inspector (D) is for vulnerability scanning.",
+    "Difficulty": "easy",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "c3d4e5f6-6789-012a-8901-345abcdef678",
+    "QuestionText": "A SysOps administrator is configuring an Amazon CloudWatch alarm for an Auto Scaling group's `GroupTotalInstances` metric. The administrator wants to be alerted when the number of instances drops below 2 for more than 5 minutes. Which configuration is correct?",
+    "Options": [
+      "Metric: GroupTotalInstances, Statistic: Minimum, Period: 300 seconds, Evaluation Periods: 1, Threshold: 2, Comparison: LessThanThreshold",
+      "Metric: GroupTotalInstances, Statistic: Average, Period: 60 seconds, Evaluation Periods: 5, Threshold: 2, Comparison: LessThanThreshold",
+      "Metric: GroupTotalInstances, Statistic: Maximum, Period: 60 seconds, Evaluation Periods: 5, Threshold: 2, Comparison: LessThanThreshold",
+      "Metric: GroupTotalInstances, Statistic: Sum, Period: 300 seconds, Evaluation Periods: 1, Threshold: 2, Comparison: LessThanThreshold"
+    ],
+    "CorrectAnswer": "Metric: GroupTotalInstances, Statistic: Minimum, Period: 300 seconds, Evaluation Periods: 1, Threshold: 2, Comparison: LessThanThreshold",
+    "Explanation": "To check if the instance count drops below 2 for a continuous 5-minute period, you can use Period 300 seconds (5 minutes) and check the Minimum statistic (since any dip below 2 during that period would be captured). Option A is correct. Option B uses Average over 1-minute periods for 5 minutes, which might not capture a dip if it's averaged out. Option C uses Maximum, which would be higher. Option D uses Sum (not meaningful for count).",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "d4e5f6a7-7890-123b-9012-456abcdef789",
+    "QuestionText": "A company runs a batch processing workload on EC2 instances every night for 3 hours. The workload is fault-tolerant and can be interrupted. The SysOps administrator wants to minimize cost. Which EC2 purchasing option is most appropriate?",
+    "Options": [
+      "Spot Instances",
+      "On-Demand Instances",
+      "Reserved Instances (1-year term)",
+      "Dedicated Hosts"
+    ],
+    "CorrectAnswer": "Spot Instances",
+    "Explanation": "Spot Instances offer significant discounts (up to 90%) but can be reclaimed with 2-minute notice. For fault-tolerant, short-duration batch jobs, Spot Instances are the most cost-effective. Option A is correct. On-Demand (B) is more expensive. Reserved (C) requires long-term commitment. Dedicated Hosts (D) are very expensive.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "e5f6a7b8-8901-234c-0123-567abcdef890",
+    "QuestionText": "A SysOps administrator is troubleshooting an Amazon RDS instance that is running out of storage. The instance is using gp2 with auto-scaling enabled, but storage has not increased. The current storage is 100 GB, and the maximum storage threshold is set to 1000 GB. What could be preventing auto-scaling?",
+    "Options": [
+      "Storage auto-scaling only triggers when free space is below 10% for at least 5 minutes.",
+      "Auto-scaling is not supported for gp2; only io1 supports it.",
+      "The RDS instance is in a stopped state.",
+      "The instance has too many read replicas."
+    ],
+    "CorrectAnswer": "Storage auto-scaling only triggers when free space is below 10% for at least 5 minutes.",
+    "Explanation": "RDS storage auto-scaling triggers when free space is less than 10% of the current allocated storage for at least 5 minutes. If free space is above 10%, it will not trigger. Option A is correct. Option B is false; gp2 supports auto-scaling. Option C: stopped instance wouldn't generate alerts. Option D: read replicas do not prevent auto-scaling.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "f6a7b8c9-9012-345d-1234-678abcdef901",
+    "QuestionText": "A SysOps administrator is configuring a VPC with public and private subnets. The administrator wants to allow instances in a private subnet to access the internet for software updates but not be reachable from the internet. What is the required component?",
+    "Options": [
+      "A NAT Gateway in a public subnet, and a route in the private subnet route table pointing to the NAT Gateway.",
+      "An Internet Gateway attached to the private subnet.",
+      "A VPN connection to an on-premises network.",
+      "A VPC endpoint for EC2."
+    ],
+    "CorrectAnswer": "A NAT Gateway in a public subnet, and a route in the private subnet route table pointing to the NAT Gateway.",
+    "Explanation": "NAT Gateway (or NAT instance) in a public subnet allows private instances to initiate outbound internet traffic while preventing inbound access. The private subnet route table must have a default route to the NAT Gateway. Option A is correct. Option B would make instances public. Option C is for hybrid connectivity. Option D is for AWS services, not general internet.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "a7b8c9d0-0123-456e-2345-789abcdef012",
+    "QuestionText": "A SysOps administrator needs to audit all changes to IAM policies over the last 90 days. The administrator must be able to see the old and new policy documents. Which AWS service provides this information?",
+    "Options": [
+      "AWS Config records configuration changes for IAM policies, including the policy document.",
+      "AWS CloudTrail records the API calls but not the policy content.",
+      "IAM Access Analyzer generates policy change reports.",
+      "AWS Trusted Advisor tracks policy changes."
+    ],
+    "CorrectAnswer": "AWS Config records configuration changes for IAM policies, including the policy document.",
+    "Explanation": "AWS Config tracks IAM policy configuration history, including the full policy document before and after changes. Option A is correct. CloudTrail (B) shows who made the change but not the content. Access Analyzer (C) is for analyzing policy access, not change history. Trusted Advisor (D) does not track changes.",
+    "Difficulty": "medium",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "b8c9d0e1-1234-567f-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator is using AWS Systems Manager Run Command to execute a script on multiple EC2 instances. Some instances are not showing as targets in the command. What is the most likely reason?",
+    "Options": [
+      "The SSM Agent is not installed or is not running on those instances.",
+      "The instances are in a stopped state.",
+      "The security group does not allow outbound ICMP.",
+      "The instances are running a Windows operating system."
+    ],
+    "CorrectAnswer": "The SSM Agent is not installed or is not running on those instances.",
+    "Explanation": "For Systems Manager to manage an instance, the SSM Agent must be installed, running, and able to communicate with the SSM service. Option A is the most common cause. Option B: stopped instances cannot be targets. Option C: ICMP is not required. Option D: Windows instances can be managed with SSM Agent installed.",
+    "Difficulty": "easy",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "c9d0e1f2-2345-678a-4567-901abcdef234",
+    "QuestionText": "A company wants to automatically scale an Amazon ECS service based on the number of requests per second. Which scaling method should be used?",
+    "Options": [
+      "Application Auto Scaling with a target tracking policy using the RequestCountPerTarget metric from the Application Load Balancer.",
+      "AWS Auto Scaling for EC2 instances.",
+      "Amazon ECS Service Auto Scaling with a step scaling policy based on CPU utilization.",
+      "AWS Lambda to adjust the desired count based on CloudWatch logs."
+    ],
+    "CorrectAnswer": "Application Auto Scaling with a target tracking policy using the RequestCountPerTarget metric from the Application Load Balancer.",
+    "Explanation": "ECS Service Auto Scaling (powered by Application Auto Scaling) supports target tracking policies using custom metrics like `RequestCountPerTarget` from an ALB. Option A is correct. Option B is for EC2, not ECS services. Option C: CPU utilization is not request-based. Option D is a custom workaround.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "d0e1f2a3-3456-789b-5678-012abcdef345",
+    "QuestionText": "A SysOps administrator is configuring an Amazon CloudWatch dashboard to display metrics from multiple AWS accounts. What is the required setup?",
+    "Options": [
+      "Enable cross-account dashboard sharing in CloudWatch and grant the necessary IAM permissions.",
+      "Create a separate dashboard in each account and combine them manually.",
+      "Use AWS Organizations to automatically aggregate metrics.",
+      "Export metrics to a third-party tool."
+    ],
+    "CorrectAnswer": "Enable cross-account dashboard sharing in CloudWatch and grant the necessary IAM permissions.",
+    "Explanation": "CloudWatch supports cross-account dashboards by sharing a dashboard from one account and granting IAM permissions to view it. Option A is correct. Option B is not unified. Option C: Organizations does not auto-aggregate metrics. Option D is external.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "e1f2a3b4-4567-890c-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is troubleshooting an Application Load Balancer that is returning HTTP 502 errors. The target group health checks are passing, and the instances are responding to requests directly via their IP addresses. What is the most likely cause?",
+    "Options": [
+      "The ALB cannot establish a connection to the target because the target's security group does not allow traffic from the ALB's security group or VPC CIDR.",
+      "The ALB listener certificate has expired.",
+      "The target group protocol is TCP, but the application uses HTTP.",
+      "The instances are running out of CPU."
+    ],
+    "CorrectAnswer": "The ALB cannot establish a connection to the target because the target's security group does not allow traffic from the ALB's security group or VPC CIDR.",
+    "Explanation": "If instances are reachable directly but not through the ALB, the likely issue is that the instance security group blocks traffic from the ALB. The ALB's security group must be allowed (or the VPC CIDR). Option A is correct. Option B would cause SSL errors. Option C: protocol mismatch would cause health check failures. Option D: CPU issues would affect direct access as well.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f2a3b4c5-5678-901d-7890-234abcdef567",
+    "QuestionText": "A SysOps administrator is using AWS CloudFormation to manage infrastructure. The administrator wants to prevent accidental deletion of a production stack. What should be enabled?",
+    "Options": [
+      "Termination protection on the CloudFormation stack.",
+      "DeletionPolicy: Retain on all resources.",
+      "Enable MFA delete on the S3 bucket used for templates.",
+      "Use an SCP to deny cloudformation:DeleteStack."
+    ],
+    "CorrectAnswer": "Termination protection on the CloudFormation stack.",
+    "Explanation": "CloudFormation termination protection prevents the stack from being deleted. Option A is correct. Option B retains resources but the stack can still be deleted (leaving orphaned resources). Option C: MFA delete is for S3 buckets, not stacks. Option D: SCP would affect all stacks, not just one.",
+    "Difficulty": "easy",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a3b4c5d6-6789-012e-8901-345abcdef678",
+    "QuestionText": "An organization wants to track and alert on the total number of EC2 instances running across multiple AWS accounts. The SysOps administrator needs a centralized view. What is the most efficient way?",
+    "Options": [
+      "Use AWS Config aggregator to collect instance counts from all accounts and create a CloudWatch alarm.",
+      "Write a Lambda function that runs in each account and publishes a custom metric to a central account.",
+      "Enable trusted access for AWS Organizations and use AWS Compute Optimizer.",
+      "Manually count instances from each account's EC2 console."
+    ],
+    "CorrectAnswer": "Use AWS Config aggregator to collect instance counts from all accounts and create a CloudWatch alarm.",
+    "Explanation": "AWS Config aggregator allows you to view resource counts across accounts. You can then use Config advanced queries or a custom CloudWatch metric. Option A is efficient. Option B works but requires custom code. Option C: Compute Optimizer gives recommendations, not counts. Option D is manual.",
+    "Difficulty": "hard",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "b4c5d6e7-7890-123f-9012-456abcdef789",
+    "QuestionText": "A SysOps administrator is configuring an Amazon RDS for PostgreSQL database with Multi-AZ deployment. The application performs heavy write operations. What is the impact on write performance?",
+    "Options": [
+      "Write operations are synchronously replicated to the standby, which may increase write latency.",
+      "Write operations are asynchronously replicated, so there is no performance impact.",
+      "Write operations are performed only on the primary; the standby does not affect write performance.",
+      "Multi-AZ deployments disable write operations for high availability."
+    ],
+    "CorrectAnswer": "Write operations are synchronously replicated to the standby, which may increase write latency.",
+    "Explanation": "In Multi-AZ, writes to the primary are synchronously replicated to the standby in another AZ before acknowledgment, which can add network latency and slightly increase write latency. Option A is correct. Option B is false (it's synchronous). Option C is partially true but the replication does affect performance. Option D is false.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "c5d6e7f8-8901-234a-0123-567abcdef890",
+    "QuestionText": "A SysOps administrator is using AWS Cost Explorer and sees that the majority of costs are from data transfer (AWS Data Transfer). The administrator wants to reduce data transfer costs between EC2 instances in different Availability Zones. What is the best practice?",
+    "Options": [
+      "Use the same Availability Zone for instances that communicate frequently.",
+      "Use a placement group to reduce network latency and costs.",
+      "Use VPC peering instead of internet gateways.",
+      "Enable Enhanced Networking on the instances."
+    ],
+    "CorrectAnswer": "Use the same Availability Zone for instances that communicate frequently.",
+    "Explanation": "Data transfer between EC2 instances in different AZs incurs charges, while transfer within the same AZ (using private IPs) is free. Option A directly reduces costs. Option B: placement groups improve performance but do not eliminate cross-AZ charges. Option C: VPC peering does not reduce data transfer costs. Option D: Enhanced Networking improves performance, not cost.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "d6e7f8a9-9012-345b-1234-678abcdef901",
+    "QuestionText": "A SysOps administrator is troubleshooting an EC2 instance that is unreachable via SSH. The instance passes both system and instance status checks. The security group allows inbound SSH from 0.0.0.0/0, and the subnet route table has a route to an internet gateway. The instance has a public IP. What should the administrator check next?",
+    "Options": [
+      "The network ACL outbound rules for ephemeral ports (1024-65535).",
+      "The instance's IAM role permissions for EC2.",
+      "The instance's root volume encryption status.",
+      "The instance's placement group settings."
+    ],
+    "CorrectAnswer": "The network ACL outbound rules for ephemeral ports (1024-65535).",
+    "Explanation": "Network ACLs are stateless. For inbound SSH, the outbound rule must allow return traffic on ephemeral ports. If the outbound ACL blocks these ports, the SSH response will not reach the client. Option A is a common oversight. Option B: IAM roles are not required for SSH. Option C: encryption does not affect connectivity. Option D: placement groups are for performance, not connectivity.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "e7f8a9b0-0123-456c-2345-789abcdef012",
+    "QuestionText": "A company wants to automatically stop EC2 instances that are not tagged with a \"Project\" tag. The SysOps administrator needs to identify and stop these instances daily. What is the most efficient solution?",
+    "Options": [
+      "Use AWS Config to evaluate instances for the required tag and trigger an SSM Automation to stop non-compliant instances.",
+      "Write a Lambda function that runs daily, lists all instances, and stops those without the tag.",
+      "Use AWS Trusted Advisor to check for untagged instances and manually stop them.",
+      "Enable EC2 Instance Scheduler to stop all instances, then start only tagged ones."
+    ],
+    "CorrectAnswer": "Write a Lambda function that runs daily, lists all instances, and stops those without the tag.",
+    "Explanation": "A scheduled Lambda function using the AWS SDK can efficiently identify and stop untagged instances. Option B is a straightforward, cost-effective solution. Option A: Config can evaluate but stopping requires custom remediation; possible but more complex. Option C is manual. Option D: Instance Scheduler is time-based, not tag-based.",
+    "Difficulty": "medium",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "f8a9b0c1-1234-567d-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator is configuring an Amazon RDS for MySQL read replica. The primary database has heavy write traffic. The administrator notices that the read replica is often lagging behind the primary. What is the most likely cause?",
+    "Options": [
+      "The read replica is using a smaller instance size than the primary, insufficient for the write load.",
+      "The primary database has Multi-AZ enabled, which slows down replication.",
+      "The read replica is in a different region, causing network latency.",
+      "The binary logging format on the primary is set to STATEMENT instead of ROW."
+    ],
+    "CorrectAnswer": "The read replica is using a smaller instance size than the primary, insufficient for the write load.",
+    "Explanation": "If the read replica has less CPU or memory than the primary, it may not keep up with the write volume, causing replication lag. Option A is common. Option B: Multi-AZ does not affect replication lag. Option C: cross-region replicas have higher lag but the question doesn't specify. Option D: STATEMENT format can cause issues, but ROW is default and recommended; however, instance size mismatch is more likely.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "a9b0c1d2-2345-678e-4567-901abcdef234",
+    "QuestionText": "A SysOps administrator is using AWS CloudTrail to log management events. The administrator needs to ensure that the logs are encrypted at rest and protected from tampering. What should be configured?",
+    "Options": [
+      "Enable S3 server-side encryption (SSE-S3 or SSE-KMS) on the destination bucket and enable S3 Object Lock.",
+      "Use CloudTrail log file validation and store logs in a bucket with MFA Delete.",
+      "Enable default encryption on the S3 bucket and use a bucket policy to deny unencrypted uploads.",
+      "Use AWS KMS to encrypt the CloudTrail trail itself."
+    ],
+    "CorrectAnswer": "Enable S3 server-side encryption (SSE-S3 or SSE-KMS) on the destination bucket and enable S3 Object Lock.",
+    "Explanation": "S3 encryption protects logs at rest, and S3 Object Lock prevents deletion or overwriting for a set period, ensuring tamper-proof logs. Option A is comprehensive. Option B: log file validation detects tampering but does not prevent it; MFA Delete helps but Object Lock is stronger. Option C: denies unencrypted uploads but not tampering. Option D: CloudTrail trails cannot be encrypted directly; logs are in S3.",
+    "Difficulty": "hard",
+    "Domain": "security"
+  },
+  {
+    "QuestionID": "b0c1d2e3-3456-789f-5678-012abcdef345",
+    "QuestionText": "A SysOps administrator is configuring an Auto Scaling group with a launch template. The administrator wants to ensure that instances are launched with a specific IAM role that allows them to access an S3 bucket. Where should the IAM role be specified?",
+    "Options": [
+      "In the launch template under the IAM instance profile section.",
+      "In the Auto Scaling group configuration as a separate parameter.",
+      "Attach the IAM role to the Auto Scaling group directly.",
+      "Specify the role in the user-data script."
+    ],
+    "CorrectAnswer": "In the launch template under the IAM instance profile section.",
+    "Explanation": "The IAM role (via instance profile) is specified in the launch template's IAM instance profile field. Option A is correct. Option B: Auto Scaling group does not have a direct IAM role parameter. Option C: not possible. Option D: user-data cannot assign an IAM role.",
+    "Difficulty": "easy",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "c1d2e3f4-4567-890a-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is monitoring an Amazon CloudFront distribution and notices a high number of 4xx errors. The distribution serves content from an S3 origin. What is the most likely cause?",
+    "Options": [
+      "The origin access identity (OAI) is not correctly configured, or the S3 bucket policy denies access to CloudFront.",
+      "The CloudFront SSL certificate has expired.",
+      "The S3 bucket has versioning disabled.",
+      "The TTL settings are too low, causing frequent origin fetches."
+    ],
+    "CorrectAnswer": "The origin access identity (OAI) is not correctly configured, or the S3 bucket policy denies access to CloudFront.",
+    "Explanation": "4xx errors indicate client or origin access issues. If CloudFront cannot access the S3 origin due to missing OAI permissions, it will return 403 (Forbidden) or similar. Option A is correct. Option B would cause SSL errors, not 4xx. Option C: versioning does not affect access. Option D: low TTL causes more requests but not 4xx.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "d2e3f4a5-5678-901b-7890-234abcdef567",
+    "QuestionText": "A SysOps administrator needs to create an Amazon CloudWatch alarm that triggers when the average CPU utilization of an EC2 instance exceeds 80% for 15 consecutive minutes. Which configuration achieves this?",
+    "Options": [
+      "Statistic: Average, Period: 900 seconds, Evaluation Periods: 1, Threshold: 80",
+      "Statistic: Average, Period: 300 seconds, Evaluation Periods: 3, Threshold: 80",
+      "Statistic: Maximum, Period: 60 seconds, Evaluation Periods: 15, Threshold: 80",
+      "Statistic: Average, Period: 60 seconds, Evaluation Periods: 15, Threshold: 80"
+    ],
+    "CorrectAnswer": "Statistic: Average, Period: 900 seconds, Evaluation Periods: 1, Threshold: 80",
+    "Explanation": "To monitor a 15-minute period, set Period to 900 seconds (15 minutes) and Evaluation Periods to 1. Statistic: Average. Option A is correct. Option B monitors three 5-minute periods (15 minutes total) but checks each period separately; that would trigger if any 5-minute period exceeds 80, not necessarily the average over 15 minutes. Option C uses Maximum. Option D uses 15 one-minute periods, which would trigger if any single minute exceeds 80, not the average over 15 minutes.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "e3f4a5b6-6789-012c-8901-345abcdef678",
+    "QuestionText": "A SysOps administrator is using AWS Organizations with consolidated billing. The administrator wants to give a member account's administrator the ability to view cost data for only that account, not the entire organization. What should be done?",
+    "Options": [
+      "Enable IAM policy in the member account that restricts cost explorer access to the member's own data using the `aws:PrincipalAccount` condition.",
+      "This is not possible; consolidated billing only allows the management account to view costs.",
+      "Create a cost budget in the member account that exports data to S3.",
+      "Use AWS Config to filter cost data by account."
+    ],
+    "CorrectAnswer": "Enable IAM policy in the member account that restricts cost explorer access to the member's own data using the `aws:PrincipalAccount` condition.",
+    "Explanation": "In consolidated billing, member accounts can view their own costs if they have appropriate IAM permissions. You can further restrict using a condition that checks the principal account ID matches the requested linked account. Option A is correct. Option B is false. Option C and D are not standard solutions.",
+    "Difficulty": "hard",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "f4a5b6c7-7890-123d-9012-456abcdef789",
+    "QuestionText": "A SysOps administrator is troubleshooting an AWS CloudFormation stack that failed to create because an EC2 instance could not be launched due to insufficient capacity in the specified Availability Zone. The stack is in a CREATE_FAILED state. What can the administrator do to recover without deleting the stack?",
+    "Options": [
+      "Update the stack with a new Availability Zone parameter (if parameterized) and continue the creation.",
+      "Manually launch the instance in another AZ and attach it to the stack.",
+      "Delete the stack and redeploy with a different AZ.",
+      "Wait for capacity to become available; CloudFormation will retry automatically."
+    ],
+    "CorrectAnswer": "Update the stack with a new Availability Zone parameter (if parameterized) and continue the creation.",
+    "Explanation": "CloudFormation allows you to update a stack even if it is in CREATE_FAILED state, provided you change the failing resource's configuration (e.g., AZ). Option A is correct. Option B is not integrated. Option C is destructive. Option D: CloudFormation does not auto-retry.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a5b6c7d8-8901-234e-0123-567abcdef890",
+    "QuestionText": "A SysOps administrator is configuring an Amazon S3 bucket for static website hosting. The administrator wants to redirect all HTTP requests to HTTPS. What is the best way to achieve this?",
+    "Options": [
+      "Use Amazon CloudFront with a viewer protocol policy of Redirect HTTP to HTTPS, and set the S3 bucket as origin.",
+      "Configure an S3 bucket policy that denies HTTP requests.",
+      "Enable S3 Transfer Acceleration with HTTPS only.",
+      "Use Route 53 to redirect HTTP to HTTPS."
+    ],
+    "CorrectAnswer": "Use Amazon CloudFront with a viewer protocol policy of Redirect HTTP to HTTPS, and set the S3 bucket as origin.",
+    "Explanation": "S3 static website hosting does not natively support HTTPS for custom domains. CloudFront can front the S3 bucket and enforce HTTPS redirection. Option A is the best practice. Option B: S3 bucket policies cannot redirect, only deny. Option C: Transfer Acceleration is for speed, not redirection. Option D: Route 53 does not redirect HTTP to HTTPS at the DNS level.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "b6c7d8e9-9012-345f-1234-678abcdef901",
+    "QuestionText": "A SysOps administrator is using AWS Systems Manager Patch Manager to patch a fleet of Linux EC2 instances. The administrator wants to approve all security patches automatically but defer non-security patches for manual approval. What should be configured?",
+    "Options": [
+      "Create a patch baseline with auto-approval for security patches and manual approval for other classifications.",
+      "Use the default patch baseline, which only includes security patches.",
+      "Create a maintenance window that only installs security patches.",
+      "Use AWS Config to enforce patch compliance and ignore non-security patches."
+    ],
+    "CorrectAnswer": "Create a patch baseline with auto-approval for security patches and manual approval for other classifications.",
+    "Explanation": "Patch Manager uses patch baselines to define which patches are approved. You can set auto-approval rules for specific classifications (e.g., Security) and require manual approval for others. Option A is correct. Option B: default baseline may include both. Option C: maintenance windows schedule patching, not approval rules. Option D: Config does not handle patch approval logic.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "c7d8e9f0-0123-456a-2345-789abcdef012",
+    "QuestionText": "A SysOps administrator notices that an Amazon RDS database's `DatabaseConnections` metric is approaching the maximum allowed for the instance type. The application uses a connection pool but occasionally spikes. What should the administrator do to prevent connection exhaustion?",
+    "Options": [
+      "Increase the max_connections parameter in the DB parameter group and reboot the instance.",
+      "Switch to a larger instance type with a higher max_connections limit.",
+      "Implement connection pooling at the application level more aggressively.",
+      "Enable RDS Proxy to manage connection pooling and reduce overhead."
+    ],
+    "CorrectAnswer": "Enable RDS Proxy to manage connection pooling and reduce overhead.",
+    "Explanation": "RDS Proxy sits between the application and the database, pooling and sharing connections, which reduces the number of direct connections to the database. It can handle spikes without increasing instance size. Option D is the most efficient and modern solution. Option A and B increase limits but do not solve the underlying spike issue. Option C may help but requires application changes.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "d8e9f0a1-1234-567b-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator is configuring a VPC peering connection between two VPCs in different AWS accounts. After accepting the peering request and updating route tables, an EC2 instance in VPC A cannot ping an instance in VPC B. Both security groups allow ICMP from the peered CIDR. What is the most likely issue?",
+    "Options": [
+      "The route tables in both VPCs must have entries for the peered VPC's CIDR pointing to the peering connection.",
+      "The security groups must reference each other's security group ID, not just CIDR.",
+      "The peering connection must be in the same region.",
+      "The instances must have public IP addresses."
+    ],
+    "CorrectAnswer": "The route tables in both VPCs must have entries for the peered VPC's CIDR pointing to the peering connection.",
+    "Explanation": "Even if the peering connection is accepted, each VPC's route table must have a route for the other VPC's CIDR that points to the peering connection. If one side is missing, traffic will not route. Option A is a common misconfiguration. Option B: security groups can use CIDR; it works. Option C: cross-region peering is allowed. Option D: private IPs work over peering.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "e9f0a1b2-2345-678c-4567-901abcdef234",
+    "QuestionText": "A SysOps administrator is using AWS Config to monitor EC2 instance compliance. The administrator wants to be notified whenever an instance is found to be non-compliant with a specific rule. What should be configured?",
+    "Options": [
+      "Create an Amazon SNS topic and subscribe the administrator, then configure Config to send notifications to that topic for non-compliant resources.",
+      "Use CloudTrail to detect Config evaluation results and trigger a CloudWatch alarm.",
+      "Set up a Lambda function to poll Config API for non-compliant resources.",
+      "Enable AWS Trusted Advisor to send compliance reports."
+    ],
+    "CorrectAnswer": "Create an Amazon SNS topic and subscribe the administrator, then configure Config to send notifications to that topic for non-compliant resources.",
+    "Explanation": "AWS Config can deliver notifications to an SNS topic for compliance changes. You can configure Config to send messages when a resource becomes non-compliant. Option A is the native integration. Option B is indirect. Option C is custom. Option D: Trusted Advisor does not provide Config compliance notifications.",
+    "Difficulty": "easy",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "f0a1b2c3-3456-789d-5678-012abcdef345",
+    "QuestionText": "A company runs a production application on EC2 instances in an Auto Scaling group. The SysOps administrator needs to perform a kernel update that requires a reboot. The administrator wants to minimize downtime and ensure that the update is applied to all instances without losing availability. What is the best strategy?",
+    "Options": [
+      "Perform a rolling reboot: use AWS Systems Manager to reboot instances one at a time, waiting for the instance to become healthy in the load balancer before proceeding.",
+      "Stop all instances, update them, then start them simultaneously.",
+      "Create a new Auto Scaling group with the updated AMI and gradually shift traffic using a weighted DNS.",
+      "Use EC2 Image Builder to create a new AMI and then update the Auto Scaling group's launch template."
+    ],
+    "CorrectAnswer": "Perform a rolling reboot: use AWS Systems Manager to reboot instances one at a time, waiting for the instance to become healthy in the load balancer before proceeding.",
+    "Explanation": "A rolling reboot, using Systems Manager Run Command or maintenance windows, allows you to reboot instances sequentially while the load balancer drains connections and verifies health. This maintains availability. Option A is correct. Option B causes full downtime. Option C and D are for AMI updates, not kernel updates on running instances.",
+    "Difficulty": "medium",
+    "Domain": "reliability"
+  },
+  {
+    "QuestionID": "a1b2c3d4-4567-890e-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is troubleshooting an Amazon S3 bucket that is incurring high costs due to LIST requests. The application lists all objects in the bucket every minute to check for new files. What is the most cost-effective way to reduce LIST costs without changing the application's polling frequency?",
+    "Options": [
+      "Use S3 Inventory to generate a daily manifest and have the application read that instead.",
+      "Enable S3 Event Notifications to send SQS messages when new objects are created, so the application can process events instead of polling.",
+      "Switch to S3 Intelligent-Tiering to reduce request costs.",
+      "Increase the polling interval to 5 minutes."
+    ],
+    "CorrectAnswer": "Enable S3 Event Notifications to send SQS messages when new objects are created, so the application can process events instead of polling.",
+    "Explanation": "The best way to eliminate LIST requests is to move to an event-driven model: S3 sends notifications to SQS or Lambda when new objects arrive. This completely removes the need for polling. Option B is correct. Option A reduces frequency but still requires LIST on a daily basis. Option C does not reduce LIST costs. Option D reduces frequency but still incurs costs.",
+    "Difficulty": "medium",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "b2c3d4e5-5678-901f-7890-234abcdef567",
+    "QuestionText": "A SysOps administrator is configuring an AWS CloudTrail trail to log data events for an S3 bucket. The trail is created but no data events appear in the log. What is the most likely reason?",
+    "Options": [
+      "Data events must be explicitly enabled and the specific bucket or prefix must be selected in the trail configuration.",
+      "CloudTrail does not support data events for S3; only management events.",
+      "The S3 bucket is in a different region than the trail.",
+      "The IAM role used by CloudTrail does not have s3:GetObject permission."
+    ],
+    "CorrectAnswer": "Data events must be explicitly enabled and the specific bucket or prefix must be selected in the trail configuration.",
+    "Explanation": "CloudTrail trails do not log data events by default. You must enable data events and specify which S3 buckets (or all) to log. Option A is correct. Option B is false. Option C: CloudTrail can log events across regions. Option D: CloudTrail uses a bucket policy, not an IAM role for reading; it needs write permissions to deliver logs, not read.",
+    "Difficulty": "easy",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "c3d4e5f6-6789-012a-8901-345abcdef678",
+    "QuestionText": "A SysOps administrator is using AWS CodeDeploy to deploy a new version of an application to EC2 instances. The deployment fails because the application stop script times out. What should the administrator do to resolve this?",
+    "Options": [
+      "Increase the deployment configuration timeout for the stop lifecycle event in the appspec.yml file.",
+      "Modify the Auto Scaling group health check grace period.",
+      "Disable the stop script and rely on a force kill.",
+      "Use AWS Systems Manager to manually stop the application before deployment."
+    ],
+    "CorrectAnswer": "Increase the deployment configuration timeout for the stop lifecycle event in the appspec.yml file.",
+    "Explanation": "In CodeDeploy, you can specify timeout values for each lifecycle event (e.g., ApplicationStop) in the appspec.yml file. Increasing the timeout allows the script more time to complete. Option A is correct. Option B affects Auto Scaling, not CodeDeploy. Option C is unsafe. Option D is manual and not integrated.",
+    "Difficulty": "medium",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "d4e5f6a7-7890-123b-9012-456abcdef789",
+    "QuestionText": "An organization wants to ensure that all Amazon EBS snapshots are deleted after 30 days. The SysOps administrator needs to automate this. What is the simplest solution?",
+    "Options": [
+      "Use Amazon Data Lifecycle Manager (DLM) with a retention policy of 30 days.",
+      "Write a Lambda function that runs daily and deletes snapshots older than 30 days.",
+      "Use AWS Backup with a backup plan that has a retention of 30 days.",
+      "Manually delete snapshots older than 30 days each month."
+    ],
+    "CorrectAnswer": "Use Amazon Data Lifecycle Manager (DLM) with a retention policy of 30 days.",
+    "Explanation": "DLM is designed specifically for automating EBS snapshot lifecycle management, including deletion based on age. Option A is the simplest. Option B works but requires custom code. Option C: AWS Backup also works but is more comprehensive; DLM is simpler for EBS-only. Option D is manual.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "e5f6a7b8-8901-234c-0123-567abcdef890",
+    "QuestionText": "A SysOps administrator is troubleshooting an Application Load Balancer that is returning HTTP 503 errors. The target group health checks are configured to GET /health on port 80. The health check fails, and the target status is unhealthy. What is the first step to diagnose?",
+    "Options": [
+      "Verify that the application's /health endpoint returns a 200 OK response.",
+      "Check the ALB listener certificate for expiration.",
+      "Increase the health check interval to reduce false positives.",
+      "Change the health check protocol to HTTPS."
+    ],
+    "CorrectAnswer": "Verify that the application's /health endpoint returns a 200 OK response.",
+    "Explanation": "If the health check is failing, the most direct cause is that the endpoint is not responding with a success code. Option A is the first step. Option B would cause SSL errors, not health check failures. Option C may mask the problem. Option D is not a fix.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f6a7b8c9-9012-345d-1234-678abcdef901",
+    "QuestionText": "A SysOps administrator is using AWS CloudFormation to deploy a stack that includes an IAM user. The administrator wants to prevent the IAM user from being deleted if the stack is deleted. What should be set?",
+    "Options": [
+      "DeletionPolicy: Retain on the IAM user resource.",
+      "DeletionPolicy: Snapshot on the IAM user (not valid).",
+      "Termination protection on the IAM user.",
+      "Enable MFA delete on the IAM user."
+    ],
+    "CorrectAnswer": "DeletionPolicy: Retain on the IAM user resource.",
+    "Explanation": "DeletionPolicy: Retain ensures that when the stack is deleted, the resource is not deleted. Option A is correct. Option B: Snapshot is for databases, not IAM. Option C: termination protection is for EC2 and CloudFormation stacks, not IAM users. Option D: MFA delete is for S3 buckets.",
+    "Difficulty": "easy",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "a7b8c9d0-0123-456e-2345-789abcdef012",
+    "QuestionText": "A SysOps administrator is monitoring an Amazon RDS for Oracle database. The administrator notices that the `SwapUsage` metric is increasing gradually over time. What does this indicate?",
+    "Options": [
+      "The database instance is running out of memory and using swap space, which can degrade performance.",
+      "The database is performing a large number of writes.",
+      "The storage is reaching its IOPS limit.",
+      "The backup window is too long."
+    ],
+    "CorrectAnswer": "The database instance is running out of memory and using swap space, which can degrade performance.",
+    "Explanation": "SwapUsage indicates that the operating system is using disk space as virtual memory because physical RAM is insufficient. This leads to performance degradation. Option A is correct. Option B: high writes affect IOPS, not swap. Option C: IOPS limit affects latency. Option D: backups affect I/O, not swap.",
+    "Difficulty": "medium",
+    "Domain": "monitoring"
+  },
+  {
+    "QuestionID": "b8c9d0e1-1234-567f-3456-890abcdef123",
+    "QuestionText": "A SysOps administrator is configuring an Amazon CloudFront distribution for a static website. The administrator wants to restrict access to specific geographic locations. What feature should be used?",
+    "Options": [
+      "CloudFront geo restriction (geo blocking)",
+      "WAF geographic match condition",
+      "S3 bucket policy with condition on aws:SourceIp",
+      "Route 53 geolocation routing"
+    ],
+    "CorrectAnswer": "CloudFront geo restriction (geo blocking)",
+    "Explanation": "CloudFront has a built-in geo restriction feature that allows you to allow or block content based on country. Option A is correct. Option B: WAF can also do this, but CloudFront native is simpler. Option C: S3 source IP condition is not effective with CloudFront (client IP is not passed directly). Option D: Route 53 geolocation routes DNS, not content access.",
+    "Difficulty": "easy",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "c9d0e1f2-2345-678a-4567-901abcdef234",
+    "QuestionText": "A SysOps administrator needs to ensure that all EC2 instances are using the latest version of an approved AMI. The administrator wants to automatically replace any instance running an older AMI with a new instance using the latest AMI. What is the best approach?",
+    "Options": [
+      "Use EC2 Image Builder to create a pipeline that updates the Auto Scaling group launch template and triggers a rolling replacement.",
+      "Manually terminate instances running old AMIs and launch new ones.",
+      "Use AWS Config to detect non-compliant instances and send a notification.",
+      "Use AWS Systems Manager Patch Manager to update the AMI in place."
+    ],
+    "CorrectAnswer": "Use EC2 Image Builder to create a pipeline that updates the Auto Scaling group launch template and triggers a rolling replacement.",
+    "Explanation": "EC2 Image Builder can automate the creation of golden AMIs and can integrate with Auto Scaling groups to perform rolling updates. Option A is the most complete automation. Option B is manual. Option C only notifies. Option D: Patch Manager updates packages, not the underlying AMI.",
+    "Difficulty": "hard",
+    "Domain": "deployment"
+  },
+  {
+    "QuestionID": "d0e1f2a3-3456-789b-5678-012abcdef345",
+    "QuestionText": "A SysOps administrator is using AWS Cost Explorer to analyze monthly spend. The administrator notices that EC2 costs are higher than expected, but the instance count has not changed. What is the most likely reason?",
+    "Options": [
+      "Some instances were changed from On-Demand to Reserved Instance pricing, but the reserved instances expired.",
+      "Data transfer costs are included in EC2 costs.",
+      "The instances were upgraded to larger instance types.",
+      "The region changed, causing different pricing."
+    ],
+    "CorrectAnswer": "The instances were upgraded to larger instance types.",
+    "Explanation": "If instance count is the same but costs increased, the likely cause is that instances were changed to larger, more expensive types. Option C is common. Option A: expired RIs would increase costs but the question says costs higher than expected, not necessarily due to RI. Option B: data transfer is separate. Option D: region change would affect pricing but less likely without instance count change.",
+    "Difficulty": "easy",
+    "Domain": "cost"
+  },
+  {
+    "QuestionID": "e1f2a3b4-4567-890c-6789-123abcdef456",
+    "QuestionText": "A SysOps administrator is troubleshooting an EC2 instance that is not appearing in the AWS Systems Manager managed instances list. The instance has the SSM Agent installed, and the IAM role has the AmazonSSMManagedInstanceCore policy. The instance is in a private subnet. What is required for the instance to communicate with Systems Manager?",
+    "Options": [
+      "A VPC endpoint for SSM and SSM Messages (ec2messages, ssmmessages).",
+      "A NAT Gateway in a public subnet.",
+      "An internet gateway attached to the private subnet.",
+      "A VPN connection to AWS."
+    ],
+    "CorrectAnswer": "A VPC endpoint for SSM and SSM Messages (ec2messages, ssmmessages).",
+    "Explanation": "For instances in private subnets to communicate with Systems Manager without internet access, you need VPC endpoints for the SSM service (com.amazonaws.region.ssm, ec2messages, ssmmessages). Option A is correct. Option B would work but requires internet and NAT costs; VPC endpoints are preferred. Option C: IGW cannot be attached to a private subnet. Option D is overkill.",
+    "Difficulty": "medium",
+    "Domain": "networking"
+  },
+  {
+    "QuestionID": "f2a3b4c5-5678-901d-7890-234abcdef567",
+    "QuestionText": "A SysOps administrator is configuring Amazon Route 53 with a weighted routing policy for A/B testing. The administrator wants to send 90% of traffic to version A and 10% to version B. Health checks are configured for both endpoints. If version A becomes unhealthy, what happens?",
+    "Options": [
+      "Route 53 will route all traffic to the healthy endpoint (version B).",
+      "Route 53 will continue sending 90% to unhealthy A, causing errors.",
+      "Route 53 will stop responding to queries for that record.",
+      "Route 53 will redistribute traffic proportionally among remaining healthy endpoints."
+    ],
+    "CorrectAnswer": "Route 53 will route all traffic to the healthy endpoint (version B).",
+    "Explanation": "When using weighted routing with health checks, Route 53 will not route traffic to unhealthy endpoints. If the primary weight (A) becomes unhealthy, all traffic will go to the remaining healthy endpoint (B). Option A is correct. Option B is incorrect because health checks exclude unhealthy targets. Option C is false; it will still respond with B. Option D: with only two endpoints, all traffic goes to B.",
+    "Difficulty": "easy",
+    "Domain": "networking"
   }
 ]

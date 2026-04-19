@@ -10,11 +10,67 @@
     
     <header class="text-center mb-8 sm:mb-10 w-full max-w-2xl">
         <h1 class="text-3xl sm:text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
-        <p class="text-sm sm:text-base text-slate-400 mb-1">65-Question Exam Simulation</p>
+        <p class="text-sm sm:text-base text-slate-400 mb-1">AWS SysOps Administrator Practice</p>
         <p class="text-xs text-slate-500">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+    </header>
+
+    <!-- Mode Selection Screen -->
+    <div id="mode-selection" class="max-w-2xl w-full bg-slate-800 p-6 sm:p-10 rounded-xl shadow-2xl border border-slate-700">
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8">Choose Exam Mode</h2>
         
+        <div class="grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <!-- Study Mode Card -->
+            <button onclick="startExam('study')" class="group p-6 rounded-lg border-2 border-slate-600 hover:border-blue-500 transition bg-slate-700/50 hover:bg-slate-700 text-left">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-3xl">📚</span>
+                    <h3 class="text-xl font-bold text-blue-400">Study Mode</h3>
+                </div>
+                <ul class="text-sm text-slate-300 space-y-2">
+                    <li>✓ See answers instantly</li>
+                    <li>✓ Read explanations</li>
+                    <li>✓ No time limit</li>
+                    <li>✓ Flag questions</li>
+                </ul>
+                <p class="mt-4 text-xs text-slate-400 italic">Perfect for learning</p>
+            </button>
+
+            <!-- Exam Mode Card -->
+            <button onclick="startExam('exam')" class="group p-6 rounded-lg border-2 border-slate-600 hover:border-orange-500 transition bg-slate-700/50 hover:bg-slate-700 text-left">
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-3xl">⏱️</span>
+                    <h3 class="text-xl font-bold text-orange-400">Exam Mode</h3>
+                </div>
+                <ul class="text-sm text-slate-300 space-y-2">
+                    <li>✓ 130-minute timer</li>
+                    <li>✓ No explanations</li>
+                    <li>✓ Review at end</li>
+                    <li>✓ Real exam feel</li>
+                </ul>
+                <p class="mt-4 text-xs text-slate-400 italic">Test your knowledge</p>
+            </button>
+        </div>
+
+        <div class="text-center">
+            <p class="text-sm text-slate-400">65 questions randomly selected from question bank</p>
+        </div>
+    </div>
+
+    <!-- Quiz Container -->
+    <main id="quiz-container" class="hidden max-w-2xl w-full bg-slate-800 p-4 sm:p-8 rounded-xl shadow-2xl border border-slate-700">
+        <!-- Timer Bar (Exam Mode Only) -->
+        <div id="timer-bar" class="hidden mb-6 p-4 bg-slate-900 rounded-lg border border-orange-500/30">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-semibold text-slate-300">Time Remaining:</span>
+                <span id="timer-display" class="text-2xl font-bold text-orange-400">2:10:00</span>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-2">
+                <div id="timer-progress" class="bg-orange-500 h-2 rounded-full transition-all duration-1000" style="width: 100%"></div>
+            </div>
+            <p class="text-xs text-slate-400 mt-2 text-center" id="timer-warning"></p>
+        </div>
+
         <!-- Exam Controls -->
-        <div class="flex flex-wrap justify-center gap-2 mt-4">
+        <div id="exam-controls" class="hidden flex flex-wrap justify-center gap-2 mb-6">
             <button onclick="location.reload()" 
                     class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold transition text-sm">
                 🔄 New Exam
@@ -23,38 +79,111 @@
                     class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-semibold transition text-sm">
                 📌 Flagged (<span id="flagCount">0</span>)
             </button>
+            <button onclick="submitExam()" id="submitExamBtn"
+                    class="hidden bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg font-semibold transition text-sm">
+                ✅ Submit Exam
+            </button>
         </div>
-    </header>
 
-    <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-4 sm:p-8 rounded-xl shadow-2xl border border-slate-700">
         <div id="loading" class="text-center py-10">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p>Loading 65 questions from Cape Town...</p>
+            <p>Loading questions from Cape Town...</p>
         </div>
         <div id="quiz-content" class="hidden"></div>
     </main>
 
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
-        const BEDROCK_ENDPOINT = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/validate'; // You'll create this
-
+        
         let allQuestions = [];
         let flaggedIndices = new Set();
+        let examMode = 'study'; // 'study' or 'exam'
+        let timerInterval = null;
+        let timeRemaining = 130 * 60; // 130 minutes in seconds
+        let examStartTime = null;
+        let userAnswers = {}; // Track all answers in exam mode
+
+        async function startExam(mode) {
+            examMode = mode;
+            document.getElementById('mode-selection').classList.add('hidden');
+            document.getElementById('quiz-container').classList.remove('hidden');
+            
+            if (mode === 'exam') {
+                document.getElementById('timer-bar').classList.remove('hidden');
+                document.getElementById('submitExamBtn').classList.remove('hidden');
+                examStartTime = Date.now();
+                startTimer();
+            }
+            
+            document.getElementById('exam-controls').classList.remove('hidden');
+            await fetchQuestions();
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                
+                // Warnings
+                if (timeRemaining === 15 * 60) {
+                    showTimerWarning('⚠️ 15 minutes remaining!', 'text-yellow-400');
+                } else if (timeRemaining === 5 * 60) {
+                    showTimerWarning('🚨 5 minutes remaining!', 'text-red-400');
+                }
+                
+                // Auto-submit when time expires
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    submitExam();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const hours = Math.floor(timeRemaining / 3600);
+            const minutes = Math.floor((timeRemaining % 3600) / 60);
+            const seconds = timeRemaining % 60;
+            
+            const display = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = display;
+            
+            // Update progress bar
+            const totalTime = 130 * 60;
+            const percentage = (timeRemaining / totalTime) * 100;
+            document.getElementById('timer-progress').style.width = percentage + '%';
+            
+            // Change color based on time remaining
+            const progressBar = document.getElementById('timer-progress');
+            if (timeRemaining < 5 * 60) {
+                progressBar.className = 'bg-red-500 h-2 rounded-full transition-all duration-1000';
+            } else if (timeRemaining < 15 * 60) {
+                progressBar.className = 'bg-yellow-500 h-2 rounded-full transition-all duration-1000';
+            } else {
+                progressBar.className = 'bg-orange-500 h-2 rounded-full transition-all duration-1000';
+            }
+        }
+
+        function showTimerWarning(message, colorClass) {
+            const warningEl = document.getElementById('timer-warning');
+            warningEl.textContent = message;
+            warningEl.className = `text-xs mt-2 text-center font-bold ${colorClass}`;
+            
+            // Flash animation
+            warningEl.style.animation = 'pulse 1s ease-in-out 3';
+        }
 
         async function fetchQuestions() {
             try {
-                console.log('Fetching questions...');
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                // Handle double-stringified JSON
                 while (typeof data === 'string') {
                     data = JSON.parse(data);
                 }
                 
                 console.log(`Loaded ${data.length} questions from database`);
                 
-                // Select random 65 questions for exam
                 allQuestions = data.sort(() => Math.random() - 0.5).slice(0, Math.min(65, data.length));
                 console.log(`Selected ${allQuestions.length} questions for this exam`);
                 
@@ -82,10 +211,15 @@
             
             function renderQuestion() {
                 const q = questions[currentQ];
-                answered = false;
+                answered = userAnswers[currentQ] !== undefined;
                 
                 const isPractical = !q.Options || !Array.isArray(q.Options) || q.Options.length === 0;
                 const isFlagged = flaggedIndices.has(currentQ);
+                const isExamMode = examMode === 'exam';
+                
+                // Calculate current stats
+                totalAnswered = Object.keys(userAnswers).length;
+                score = Object.values(userAnswers).filter(a => a.correct).length;
                 
                 container.innerHTML = `
                     <div class="mb-6 sm:mb-8">
@@ -96,8 +230,11 @@
                                     ${isPractical ? 'PRACTICAL' : 'MCQ'}
                                 </span>
                                 ${isFlagged ? '<span class="px-2 py-1 text-xs rounded bg-yellow-600/20 text-yellow-300 border border-yellow-500">🏴 FLAGGED</span>' : ''}
+                                ${isExamMode ? '<span class="px-2 py-1 text-xs rounded bg-orange-600/20 text-orange-300 border border-orange-500">⏱️ EXAM</span>' : ''}
                             </div>
-                            <span class="text-slate-400 text-sm">Score: ${score}/${totalAnswered || 1}</span>
+                            <span class="text-slate-400 text-sm">
+                                ${isExamMode ? `Answered: ${totalAnswered}/65` : `Score: ${score}/${totalAnswered || 1}`}
+                            </span>
                         </div>
                         <h3 class="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 leading-relaxed" id="qtext"></h3>
                         <div id="question-content"></div>
@@ -112,7 +249,7 @@
                                 ⏭️ Skip
                             </button>
                             <button id="nextBtn" class="hidden col-span-2 sm:col-span-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition text-sm">
-                                ${currentQ < questions.length - 1 ? 'Next →' : 'Results'}
+                                ${currentQ < questions.length - 1 ? 'Next →' : (isExamMode ? 'Continue' : 'Results')}
                             </button>
                         </div>
                     </div>
@@ -123,12 +260,12 @@
                 const contentDiv = document.getElementById('question-content');
                 
                 if (isPractical) {
-                    // Practical question UI with AI validation
+                    // Practical questions - simplified for exam mode
                     contentDiv.innerHTML = `
                         <div class="space-y-4">
                             <div class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 sm:p-4 mb-4">
                                 <p class="text-xs sm:text-sm text-purple-200">
-                                    💡 <strong>Practical Question:</strong> Provide your answer below. AI will validate it!
+                                    💡 <strong>Practical Question:</strong> Provide your answer below.
                                 </p>
                             </div>
                             
@@ -137,16 +274,16 @@
                                 <textarea id="practicalAnswer" 
                                           class="w-full p-3 sm:p-4 bg-slate-700 border-2 border-slate-600 rounded-lg text-white font-mono text-xs sm:text-sm resize-y"
                                           rows="3"
-                                          placeholder="e.g., arn:aws:iam::123456789012:role/MyRole"></textarea>
+                                          placeholder="e.g., arn:aws:iam::123456789012:role/MyRole">${userAnswers[currentQ]?.userAnswer || ''}</textarea>
                             </div>
                             
                             <button id="submitPractical" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition">
-                                <span id="validateText">🤖 Validate with AI</span>
+                                ${isExamMode ? 'Save Answer' : '✓ Check Answer'}
                             </button>
                         </div>
                     `;
                     
-                    document.getElementById('submitPractical').onclick = () => validatePracticalAnswer(q);
+                    document.getElementById('submitPractical').onclick = () => submitPracticalAnswer(q);
                     
                 } else {
                     // Multiple choice UI
@@ -156,6 +293,12 @@
                     q.Options.forEach((opt) => {
                         const btn = document.createElement('button');
                         btn.className = 'w-full text-left p-3 sm:p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent text-sm sm:text-base leading-relaxed';
+                        
+                        // Show previous answer if in exam mode and answered
+                        if (answered && userAnswers[currentQ]?.userAnswer === opt) {
+                            btn.classList.add('border-blue-400', 'bg-blue-900/30');
+                        }
+                        
                         btn.textContent = opt;
                         btn.onclick = () => checkAnswer(opt, q.CorrectAnswer, q.Explanation);
                         optionsDiv.appendChild(btn);
@@ -167,6 +310,20 @@
                 
                 // Skip button handler
                 document.getElementById('skipBtn').onclick = () => skipQuestion();
+                
+                // If already answered in exam mode, show next button
+                if (answered && isExamMode) {
+                    document.getElementById('skipBtn').classList.add('hidden');
+                    document.getElementById('nextBtn').classList.remove('hidden');
+                    document.getElementById('nextBtn').onclick = () => {
+                        currentQ++;
+                        if (currentQ < questions.length) {
+                            renderQuestion();
+                        } else {
+                            submitExam();
+                        }
+                    };
+                }
             }
             
             function toggleFlag() {
@@ -176,10 +333,10 @@
                     flaggedIndices.add(currentQ);
                 }
                 document.getElementById('flagCount').textContent = flaggedIndices.size;
-                renderQuestion(); // Re-render to update flag badge
+                renderQuestion();
             }
             
-            async function validatePracticalAnswer(q) {
+            function submitPracticalAnswer(q) {
                 const userAnswer = document.getElementById('practicalAnswer').value.trim();
                 
                 if (!userAnswer) {
@@ -188,59 +345,69 @@
                 }
                 
                 answered = true;
-                totalAnswered++;
                 
-                const submitBtn = document.getElementById('submitPractical');
-                const validateText = document.getElementById('validateText');
-                submitBtn.disabled = true;
-                validateText.textContent = '🤖 AI Validating...';
+                // Simple validation for exam mode (just save answer)
+                const isCorrect = userAnswer.toLowerCase().includes(q.CorrectAnswer.toLowerCase().substring(0, 10));
                 
-                try {
-                    // Call Bedrock to validate answer
-                    const validation = await callBedrockValidation(q.QuestionText, userAnswer, q.CorrectAnswer, q.Explanation);
+                userAnswers[currentQ] = {
+                    userAnswer: userAnswer,
+                    correct: isCorrect
+                };
+                
+                if (examMode === 'exam') {
+                    // In exam mode, just save and move on
+                    document.getElementById('submitPractical').classList.add('hidden');
+                    document.getElementById('skipBtn').classList.add('hidden');
+                    document.getElementById('nextBtn').classList.remove('hidden');
+                    document.getElementById('nextBtn').onclick = () => {
+                        currentQ++;
+                        if (currentQ < questions.length) {
+                            renderQuestion();
+                        } else {
+                            // Last question - don't auto-submit
+                            renderQuestion();
+                        }
+                    };
+                } else {
+                    // Study mode - show feedback
+                    totalAnswered++;
+                    if (isCorrect) score++;
                     
-                    const feedback = document.getElementById('feedback');
-                    feedback.className = `mt-6 p-4 rounded-lg ${validation.correct ? 'bg-green-900/30 border-2 border-green-400' : 'bg-orange-900/30 border-2 border-orange-400'}`;
-                    feedback.innerHTML = '';
-                    
-                    if (validation.correct) score++;
-                    
-                    const title = document.createElement('p');
-                    title.className = 'font-bold text-lg mb-3';
-                    title.textContent = validation.correct ? '✅ AI Verified: Correct!' : '🤔 AI Review';
-                    feedback.appendChild(title);
-                    
-                    const userSubmission = document.createElement('div');
-                    userSubmission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
-                    userSubmission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your answer:</p><p class="font-mono text-sm">${userAnswer}</p>`;
-                    feedback.appendChild(userSubmission);
-                    
-                    const aiFeedback = document.createElement('div');
-                    aiFeedback.className = 'mb-3 p-3 bg-purple-900/20 rounded border border-purple-500/30';
-                    aiFeedback.innerHTML = `<p class="text-sm"><strong>AI Feedback:</strong> ${validation.feedback}</p>`;
-                    feedback.appendChild(aiFeedback);
-                    
-                    const correctAnswer = document.createElement('div');
-                    correctAnswer.className = 'mb-3';
-                    correctAnswer.innerHTML = '<p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>';
-                    const answerText = document.createElement('p');
-                    answerText.className = 'font-mono text-sm bg-slate-800/50 p-3 rounded border border-green-500/30';
-                    answerText.textContent = q.CorrectAnswer;
-                    correctAnswer.appendChild(answerText);
-                    feedback.appendChild(correctAnswer);
-                    
-                    const exp = document.createElement('p');
-                    exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
-                    exp.textContent = q.Explanation;
-                    feedback.appendChild(exp);
-                    
-                } catch (error) {
-                    console.error('AI validation error:', error);
-                    // Fall back to showing correct answer without AI
-                    showPracticalAnswer(q, userAnswer);
+                    showPracticalFeedback(q, userAnswer, isCorrect);
                 }
+            }
+            
+            function showPracticalFeedback(q, userAnswer, isCorrect) {
+                const feedback = document.getElementById('feedback');
+                feedback.className = `mt-6 p-4 rounded-lg ${isCorrect ? 'bg-green-900/30 border-2 border-green-400' : 'bg-orange-900/30 border-2 border-orange-400'}`;
+                feedback.classList.remove('hidden');
+                feedback.innerHTML = '';
                 
-                submitBtn.classList.add('hidden');
+                const title = document.createElement('p');
+                title.className = 'font-bold text-lg mb-3';
+                title.textContent = isCorrect ? '✅ Correct!' : '💡 Review Needed';
+                feedback.appendChild(title);
+                
+                const userSubmission = document.createElement('div');
+                userSubmission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
+                userSubmission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your answer:</p><p class="font-mono text-sm">${userAnswer}</p>`;
+                feedback.appendChild(userSubmission);
+                
+                const correctAnswer = document.createElement('div');
+                correctAnswer.className = 'mb-3';
+                correctAnswer.innerHTML = '<p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>';
+                const answerText = document.createElement('p');
+                answerText.className = 'font-mono text-sm bg-slate-800/50 p-3 rounded border border-green-500/30';
+                answerText.textContent = q.CorrectAnswer;
+                correctAnswer.appendChild(answerText);
+                feedback.appendChild(correctAnswer);
+                
+                const exp = document.createElement('p');
+                exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
+                exp.textContent = q.Explanation;
+                feedback.appendChild(exp);
+                
+                document.getElementById('submitPractical').classList.add('hidden');
                 document.getElementById('skipBtn').classList.add('hidden');
                 document.getElementById('nextBtn').classList.remove('hidden');
                 document.getElementById('nextBtn').onclick = () => {
@@ -253,113 +420,114 @@
                 };
             }
             
-            async function callBedrockValidation(question, userAnswer, correctAnswer, explanation) {
-                // TODO: This will call your Lambda function that calls Bedrock
-                // For now, return mock validation
-                
-                // Simulated AI response (you'll replace this with actual Bedrock call)
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        const isClose = userAnswer.toLowerCase().includes(correctAnswer.toLowerCase().substring(0, 10));
-                        resolve({
-                            correct: isClose,
-                            feedback: isClose 
-                                ? "Your answer matches the expected format and content!" 
-                                : "Your answer is partially correct but missing some key elements."
-                        });
-                    }, 1500);
-                });
-            }
-            
-            function showPracticalAnswer(q, userAnswer) {
-                // Fallback if AI validation fails
-                const feedback = document.getElementById('feedback');
-                feedback.className = 'mt-6 p-4 rounded-lg bg-purple-900/30 border-2 border-purple-400';
-                feedback.innerHTML = `
-                    <p class="font-bold text-lg mb-3">💡 Solution</p>
-                    <div class="mb-4 p-3 bg-slate-800/50 rounded">
-                        <p class="text-sm text-slate-400 mb-1">Your answer:</p>
-                        <p class="font-mono text-sm">${userAnswer}</p>
-                    </div>
-                    <div class="mb-3">
-                        <p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>
-                        <p class="font-mono text-sm bg-slate-800/50 p-3 rounded">${q.CorrectAnswer}</p>
-                    </div>
-                    <p class="text-sm italic mt-3 pt-3 border-t border-slate-600">${q.Explanation}</p>
-                `;
-            }
-            
             function skipQuestion() {
                 currentQ++;
                 if (currentQ < questions.length) {
                     renderQuestion();
                 } else {
-                    showResults();
-                }
-            }
-            
-            function checkAnswer(selected, correct, explanation) {
-                if (answered) return;
-                answered = true;
-                totalAnswered++;
-                
-                const isCorrect = selected === correct;
-                if (isCorrect) score++;
-                
-                const buttons = document.querySelectorAll('#options button');
-                buttons.forEach(btn => {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-60', 'cursor-not-allowed');
-                    
-                    if (btn.textContent === correct) {
-                        btn.classList.remove('border-transparent');
-                        btn.classList.add('border-green-400', 'bg-green-900');
-                    }
-                    
-                    if (btn.textContent === selected && !isCorrect) {
-                        btn.classList.remove('border-transparent');
-                        btn.classList.add('border-red-400', 'bg-red-900');
-                    }
-                });
-                
-                const feedback = document.getElementById('feedback');
-                feedback.className = `mt-6 p-4 rounded-lg ${isCorrect ? 'bg-green-900/30 border-2 border-green-400' : 'bg-red-900/30 border-2 border-red-400'}`;
-                feedback.innerHTML = '';
-                
-                const feedbackTitle = document.createElement('p');
-                feedbackTitle.className = 'font-bold text-lg mb-2';
-                feedbackTitle.textContent = isCorrect ? '✅ Correct!' : '❌ Incorrect';
-                feedback.appendChild(feedbackTitle);
-                
-                if (!isCorrect) {
-                    const correctAnswer = document.createElement('p');
-                    correctAnswer.className = 'mb-2';
-                    correctAnswer.innerHTML = 'The correct answer was: <strong></strong>';
-                    correctAnswer.querySelector('strong').textContent = correct;
-                    feedback.appendChild(correctAnswer);
-                }
-                
-                const exp = document.createElement('p');
-                exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
-                exp.textContent = explanation;
-                feedback.appendChild(exp);
-                
-                document.getElementById('skipBtn').classList.add('hidden');
-                const nextBtn = document.getElementById('nextBtn');
-                nextBtn.classList.remove('hidden');
-                nextBtn.onclick = () => {
-                    currentQ++;
-                    if (currentQ < questions.length) {
+                    if (examMode === 'exam') {
+                        // Don't auto-submit, just show last question
                         renderQuestion();
                     } else {
                         showResults();
                     }
+                }
+            }
+            
+            function checkAnswer(selected, correct, explanation) {
+                if (answered && examMode === 'study') return;
+                answered = true;
+                
+                const isCorrect = selected === correct;
+                
+                userAnswers[currentQ] = {
+                    userAnswer: selected,
+                    correct: isCorrect
                 };
+                
+                if (examMode === 'exam') {
+                    // In exam mode, just highlight selection and move on
+                    const buttons = document.querySelectorAll('#options button');
+                    buttons.forEach(btn => {
+                        if (btn.textContent === selected) {
+                            btn.classList.add('border-blue-400', 'bg-blue-900/30');
+                        }
+                    });
+                    
+                    document.getElementById('skipBtn').classList.add('hidden');
+                    document.getElementById('nextBtn').classList.remove('hidden');
+                    document.getElementById('nextBtn').onclick = () => {
+                        currentQ++;
+                        if (currentQ < questions.length) {
+                            renderQuestion();
+                        } else {
+                            // Last question - don't auto-submit
+                            renderQuestion();
+                        }
+                    };
+                } else {
+                    // Study mode - show full feedback
+                    totalAnswered++;
+                    if (isCorrect) score++;
+                    
+                    const buttons = document.querySelectorAll('#options button');
+                    buttons.forEach(btn => {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-60', 'cursor-not-allowed');
+                        
+                        if (btn.textContent === correct) {
+                            btn.classList.remove('border-transparent');
+                            btn.classList.add('border-green-400', 'bg-green-900');
+                        }
+                        
+                        if (btn.textContent === selected && !isCorrect) {
+                            btn.classList.remove('border-transparent');
+                            btn.classList.add('border-red-400', 'bg-red-900');
+                        }
+                    });
+                    
+                    const feedback = document.getElementById('feedback');
+                    feedback.className = `mt-6 p-4 rounded-lg ${isCorrect ? 'bg-green-900/30 border-2 border-green-400' : 'bg-red-900/30 border-2 border-red-400'}`;
+                    feedback.classList.remove('hidden');
+                    feedback.innerHTML = '';
+                    
+                    const feedbackTitle = document.createElement('p');
+                    feedbackTitle.className = 'font-bold text-lg mb-2';
+                    feedbackTitle.textContent = isCorrect ? '✅ Correct!' : '❌ Incorrect';
+                    feedback.appendChild(feedbackTitle);
+                    
+                    if (!isCorrect) {
+                        const correctAnswer = document.createElement('p');
+                        correctAnswer.className = 'mb-2';
+                        correctAnswer.innerHTML = 'The correct answer was: <strong></strong>';
+                        correctAnswer.querySelector('strong').textContent = correct;
+                        feedback.appendChild(correctAnswer);
+                    }
+                    
+                    const exp = document.createElement('p');
+                    exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
+                    exp.textContent = explanation;
+                    feedback.appendChild(exp);
+                    
+                    document.getElementById('skipBtn').classList.add('hidden');
+                    const nextBtn = document.getElementById('nextBtn');
+                    nextBtn.classList.remove('hidden');
+                    nextBtn.onclick = () => {
+                        currentQ++;
+                        if (currentQ < questions.length) {
+                            renderQuestion();
+                        } else {
+                            showResults();
+                        }
+                    };
+                }
             }
             
             function showResults() {
-                const percentage = Math.round((score / totalAnswered) * 100);
-                const passed = percentage >= 72; // AWS passing score
+                const totalAnswered = Object.keys(userAnswers).length;
+                const score = Object.values(userAnswers).filter(a => a.correct).length;
+                const percentage = totalAnswered > 0 ? Math.round((score / totalAnswered) * 100) : 0;
+                const passed = percentage >= 72;
                 
                 let message = '';
                 if (passed) message = 'Congratulations! You passed! 🎉';
@@ -368,7 +536,7 @@
                 
                 container.innerHTML = `
                     <div class="text-center py-12">
-                        <h2 class="text-3xl font-bold mb-4">Exam Complete!</h2>
+                        <h2 class="text-3xl font-bold mb-4">${examMode === 'exam' ? 'Exam' : 'Session'} Complete!</h2>
                         <div class="text-6xl font-bold ${passed ? 'text-green-500' : 'text-orange-500'} my-6">${score} / ${totalAnswered}</div>
                         <p class="text-2xl text-slate-300 mb-2">${percentage}%</p>
                         <p class="text-lg ${passed ? 'text-green-400' : 'text-slate-400'} mb-8">${message}</p>
@@ -391,7 +559,22 @@
                         </div>
                     </div>
                 `;
+                
+                // Stop timer if running
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
             }
+            
+            // Make submitExam available globally
+            window.submitExam = function() {
+                if (confirm('Submit your exam and see results?')) {
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                    }
+                    showResults();
+                }
+            };
         }
 
         function showFlaggedQuestions() {
@@ -405,13 +588,25 @@
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('loading').innerHTML = '<p>Loading flagged questions...</p>';
             
+            // Reset to study mode for review
+            examMode = 'study';
+            document.getElementById('timer-bar').classList.add('hidden');
+            document.getElementById('submitExamBtn').classList.add('hidden');
+            
             setTimeout(() => {
                 displayQuestions(flaggedQs);
             }, 500);
         }
 
-        // Initialize
-        fetchQuestions();
+        // Add pulse animation for timer warnings
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
