@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: CloudOps Practice Exam Backend - 100% FREE TIER
+
+Globals:
+  HttpApi:
+    CorsConfiguration:
+      AllowMethods: 
+        - GET
+        - POST
+        - OPTIONS
+      AllowOrigins:
+        - "*"
+      AllowHeaders:
+        - Content-Type
+
+Resources:
+  # FREE DynamoDB Table (Provisioned Mode = Free Tier Forever)
+  QuestionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PROVISIONED  # FREE TIER: 25 RCU + 25 WCU
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5    # Well within free tier
+        WriteCapacityUnits: 5   # Well within free tier
+      AttributeDefinitions:
+        - AttributeName: QuestionID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: QuestionID
+          KeyType: HASH
+
+  # Lambda: Fetch Questions
+  GetQuestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: hello_world/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Timeout: 10
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref QuestionTable
+      Events:
+        GetQuestions:
+          Type: HttpApi
+          Properties:
+            Path: /questions
+            Method: GET
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref QuestionTable
+
+  # Lambda: Validate Answers with Bedrock AI
+  ValidateAnswerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: validate_function/
+      Handler: validate_answer.lambda_handler
+      Runtime: python3.12
+      Timeout: 30  # Bedrock can take a few seconds
+      Events:
+        ValidateAnswer:
+          Type: HttpApi
+          Properties:
+            Path: /validate
+            Method: POST
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+            Resource:
+              - arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-haiku-20240307-v1:0
+
+  # S3 Website Bucket
+  MyWebsiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'ken-exam-app-website-v3'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyWebsiteBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${MyWebsiteBucket.Arn}/*'
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Endpoint for Questions"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/questions"
+  
+  ValidateEndpoint:
+    Description: "API Endpoint for AI Validation"
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/validate"
+  
+  WebsiteURL:
+    Description: "S3 Website URL"
+    Value: !GetAtt MyWebsiteBucket.WebsiteURL
+  
+  CostEstimate:
+    Description: "Monthly Cost Estimate"
+    Value: "$0/month (100% Free Tier!) Bedrock: ~$0.03/month with heavy usage"
