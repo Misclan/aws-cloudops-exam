@@ -231,7 +231,7 @@
                 if (userAnswer || hasFile) {
                     const submission = document.createElement('div');
                     submission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
-                    submission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your submission:</p><p class="font-mono text-sm">${userSubmission}</p>`;
+                    submission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your submission:</p><p class="font-mono text-sm">${escapeHtml(userSubmission)}</p>`;
                     feedback.appendChild(submission);
                 }
                 
@@ -246,7 +246,7 @@
                 
                 const exp = document.createElement('p');
                 exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600 text-slate-300';
-                exp.innerHTML = '<strong>Explanation:</strong> ' + q.Explanation;
+                exp.innerHTML = '<strong>Explanation:</strong> ' + escapeHtml(q.Explanation);
                 feedback.appendChild(exp);
                 
                 // Hide submit button, show skip/next
@@ -309,8 +309,7 @@
                 if (!isCorrect) {
                     const correctAnswer = document.createElement('p');
                     correctAnswer.className = 'mb-2';
-                    correctAnswer.innerHTML = 'The correct answer was: <strong></strong>';
-                    correctAnswer.querySelector('strong').textContent = correct;
+                    correctAnswer.innerHTML = 'The correct answer was: <strong>' + escapeHtml(correct) + '</strong>';
                     feedback.appendChild(correctAnswer);
                 }
                 
@@ -327,11 +326,6 @@
                     currentQ++;
                     if (currentQ < shuffled.length) {
                         renderQuestion();
-                    } else {
-                        showResults();
-                    }
-                };
-            }
                     } else {
                         showResults();
                     }
@@ -356,6 +350,19 @@
                         </button>
                     </div>
                 `;
+            }
+            
+            // Helper function to escape HTML
+            function escapeHtml(str) {
+                if (!str) return '';
+                return str.replace(/[&<>]/g, function(m) {
+                    if (m === '&') return '&amp;';
+                    if (m === '<') return '&lt;';
+                    if (m === '>') return '&gt;';
+                    return m;
+                }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                    return c;
+                });
             }
             
             renderQuestion();
