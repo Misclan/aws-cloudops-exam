@@ -6,101 +6,63 @@
     <title>AWS CloudOps Practice Exam</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center py-12 px-4">
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center py-8 px-3 sm:py-12 sm:px-4">
     
-    <header class="text-center mb-10">
-        <h1 class="text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
-        <p class="text-slate-400">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+    <header class="text-center mb-8 sm:mb-10 w-full max-w-2xl">
+        <h1 class="text-3xl sm:text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
+        <p class="text-sm sm:text-base text-slate-400 mb-1">65-Question Exam Simulation</p>
+        <p class="text-xs text-slate-500">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
         
-        <!-- Generator Button (only shows if local API is running) 
-        <div id="generator-controls" class="mt-4 hidden">
-            <button onclick="generateNewQuestions()" id="genBtn" 
-                    class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition">
-                ✨ Generate 5 New Questions with Ollama
+        <!-- Exam Controls -->
+        <div class="flex flex-wrap justify-center gap-2 mt-4">
+            <button onclick="location.reload()" 
+                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold transition text-sm">
+                🔄 New Exam
             </button>
-            <p class="text-xs text-slate-500 mt-2">Requires Ollama running locally</p>
-        </div> -->
+            <button onclick="showFlaggedQuestions()" id="flaggedBtn"
+                    class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg font-semibold transition text-sm">
+                📌 Flagged (<span id="flagCount">0</span>)
+            </button>
+        </div>
     </header>
 
-    <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700">
+    <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-4 sm:p-8 rounded-xl shadow-2xl border border-slate-700">
         <div id="loading" class="text-center py-10">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-            <p>Fetching questions from Cape Town...</p>
+            <p>Loading 65 questions from Cape Town...</p>
         </div>
         <div id="quiz-content" class="hidden"></div>
     </main>
 
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
-        /*const GENERATOR_API = 'http://localhost:5000';  // Your local Ollama API
+        const BEDROCK_ENDPOINT = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/validate'; // You'll create this
 
-        // Check if local generator is available
-        async function checkGenerator() {
-            try {
-                const response = await fetch(`${GENERATOR_API}/status`);
-                if (response.ok) {
-                    document.getElementById('generator-controls').classList.remove('hidden');
-                }
-            } catch (e) {
-                // Local API not running, hide button
-            }
-        }
-
-        // Generate new questions using local Ollama
-        async function generateNewQuestions() {
-            const btn = document.getElementById('genBtn');
-            btn.disabled = true;
-            btn.textContent = '🤖 Generating with Ollama...';
-            
-            try {
-                const response = await fetch(`${GENERATOR_API}/generate?count=5`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    btn.textContent = `✅ Generated ${result.generated} questions!`;
-                    setTimeout(() => {
-                        location.reload();  // Refresh to show new questions
-                    }, 1500);
-                } else {
-                    btn.textContent = '❌ Generation failed';
-                    btn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Generation error:', error);
-                btn.textContent = '❌ Error - Is Ollama running?';
-                btn.disabled = false;
-            }
-        }
-            */
+        let allQuestions = [];
+        let flaggedIndices = new Set();
 
         async function fetchQuestions() {
             try {
-                console.log('Fetching from:', API_URL);
+                console.log('Fetching questions...');
                 const response = await fetch(API_URL);
                 let data = await response.json();
                 
-                console.log('Response type:', typeof data);
-                console.log('Raw data:', data);
-                
                 // Handle double-stringified JSON
                 while (typeof data === 'string') {
-                    console.log('Parsing stringified JSON...');
                     data = JSON.parse(data);
                 }
                 
-                console.log('Loaded', data.length, 'questions');
+                console.log(`Loaded ${data.length} questions from database`);
                 
-                // Log first question structure
-                if (data.length > 0) {
-                    console.log('Sample question:', data[0]);
-                    console.log('Has Options?', !!data[0].Options);
-                }
+                // Select random 65 questions for exam
+                allQuestions = data.sort(() => Math.random() - 0.5).slice(0, Math.min(65, data.length));
+                console.log(`Selected ${allQuestions.length} questions for this exam`);
                 
-                displayQuestions(data);
+                displayQuestions(allQuestions);
             } catch (error) {
                 console.error('Fetch error:', error);
                 document.getElementById('loading').innerHTML = 
-                    `<p class="text-red-400">Error: ${error.message}<br>Check console for details.</p>`;
+                    `<p class="text-red-400">Error: ${error.message}</p>`;
             }
         }
 
@@ -111,40 +73,46 @@
             loading.classList.add('hidden');
             container.classList.remove('hidden');
 
-            const shuffled = questions.sort(() => 0.5 - Math.random());
             let currentQ = 0;
             let score = 0;
             let totalAnswered = 0;
             let answered = false;
             
+            renderQuestion();
+            
             function renderQuestion() {
-                const q = shuffled[currentQ];
+                const q = questions[currentQ];
                 answered = false;
                 
                 const isPractical = !q.Options || !Array.isArray(q.Options) || q.Options.length === 0;
+                const isFlagged = flaggedIndices.has(currentQ);
                 
                 container.innerHTML = `
-                    <div class="mb-8">
-                        <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
-                            <div>
-                                <span class="text-orange-500 font-bold">Question ${currentQ + 1} of ${shuffled.length}</span>
-                                <span class="ml-3 px-2 py-1 text-xs rounded ${isPractical ? 'bg-purple-600/20 text-purple-300 border border-purple-500' : 'bg-green-600/20 text-green-300 border border-green-500'}">
-                                    ${isPractical ? 'PRACTICAL' : 'MULTIPLE CHOICE'}
+                    <div class="mb-6 sm:mb-8">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 pb-4 border-b border-slate-700">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="text-orange-500 font-bold text-sm sm:text-base">Question ${currentQ + 1} of ${questions.length}</span>
+                                <span class="px-2 py-1 text-xs rounded ${isPractical ? 'bg-purple-600/20 text-purple-300 border border-purple-500' : 'bg-green-600/20 text-green-300 border border-green-500'}">
+                                    ${isPractical ? 'PRACTICAL' : 'MCQ'}
                                 </span>
+                                ${isFlagged ? '<span class="px-2 py-1 text-xs rounded bg-yellow-600/20 text-yellow-300 border border-yellow-500">🏴 FLAGGED</span>' : ''}
                             </div>
-                            <span class="text-slate-400">Score: ${score}/${totalAnswered || 1}</span>
+                            <span class="text-slate-400 text-sm">Score: ${score}/${totalAnswered || 1}</span>
                         </div>
-                        <h3 class="text-xl font-semibold mb-6" id="qtext"></h3>
+                        <h3 class="text-lg sm:text-xl font-semibold mb-4 sm:mb-6 leading-relaxed" id="qtext"></h3>
                         <div id="question-content"></div>
-                        <div id="feedback" class="hidden mt-6 p-4 rounded-lg"></div>
+                        <div id="feedback" class="hidden mt-4 sm:mt-6 p-3 sm:p-4 rounded-lg text-sm sm:text-base"></div>
                         
                         <!-- Action Buttons -->
-                        <div class="flex gap-3 mt-6">
-                            <button id="skipBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition">
-                                ⏭️ Skip Question
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 sm:mt-6">
+                            <button id="flagBtn" class="bg-yellow-700 hover:bg-yellow-600 text-white font-bold py-3 px-3 sm:px-4 rounded-lg transition text-xs sm:text-sm">
+                                ${isFlagged ? '🏴 Unflag' : '📌 Flag'}
                             </button>
-                            <button id="nextBtn" class="hidden flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                                ${currentQ < shuffled.length - 1 ? 'Next Question' : 'Show Results'}
+                            <button id="skipBtn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-3 sm:px-4 rounded-lg transition text-xs sm:text-sm">
+                                ⏭️ Skip
+                            </button>
+                            <button id="nextBtn" class="hidden col-span-2 sm:col-span-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-4 rounded-lg transition text-sm">
+                                ${currentQ < questions.length - 1 ? 'Next →' : 'Results'}
                             </button>
                         </div>
                     </div>
@@ -155,108 +123,129 @@
                 const contentDiv = document.getElementById('question-content');
                 
                 if (isPractical) {
-                    // Practical question UI
+                    // Practical question UI with AI validation
                     contentDiv.innerHTML = `
                         <div class="space-y-4">
-                            <div class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4 mb-4">
-                                <p class="text-sm text-purple-200">
-                                    💡 <strong>Practical Question:</strong> Provide the answer in the text box below, or upload a screenshot of your solution.
+                            <div class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-3 sm:p-4 mb-4">
+                                <p class="text-xs sm:text-sm text-purple-200">
+                                    💡 <strong>Practical Question:</strong> Provide your answer below. AI will validate it!
                                 </p>
                             </div>
                             
                             <div>
-                                <label class="block text-sm font-semibold mb-2">Your Answer (ARN, CLI command, or text):</label>
+                                <label class="block text-xs sm:text-sm font-semibold mb-2">Your Answer:</label>
                                 <textarea id="practicalAnswer" 
-                                          class="w-full p-4 bg-slate-700 border-2 border-slate-600 rounded-lg text-white font-mono text-sm resize-y"
+                                          class="w-full p-3 sm:p-4 bg-slate-700 border-2 border-slate-600 rounded-lg text-white font-mono text-xs sm:text-sm resize-y"
                                           rows="3"
-                                          placeholder="e.g., arn:aws:iam::123456789012:role/MyRole or aws s3 mb s3://my-bucket"></textarea>
+                                          placeholder="e.g., arn:aws:iam::123456789012:role/MyRole"></textarea>
                             </div>
                             
-                            <div>
-                                <label class="block text-sm font-semibold mb-2">Or Upload Screenshot (optional):</label>
-                                <input type="file" id="screenshotUpload" accept="image/*"
-                                       class="w-full p-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
-                                <p class="text-xs text-slate-500 mt-2">Accepted: PNG, JPG, JPEG</p>
-                            </div>
-                            
-                            <button id="submitPractical" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                                ✓ Submit & See Answer
+                            <button id="submitPractical" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition">
+                                <span id="validateText">🤖 Validate with AI</span>
                             </button>
                         </div>
                     `;
                     
-                    document.getElementById('submitPractical').onclick = () => showPracticalAnswer(q);
+                    document.getElementById('submitPractical').onclick = () => validatePracticalAnswer(q);
                     
                 } else {
                     // Multiple choice UI
-                    contentDiv.innerHTML = '<div id="options" class="space-y-3"></div>';
+                    contentDiv.innerHTML = '<div id="options" class="space-y-2 sm:space-y-3"></div>';
                     
                     const optionsDiv = document.getElementById('options');
-                    q.Options.forEach((opt, idx) => {
+                    q.Options.forEach((opt) => {
                         const btn = document.createElement('button');
-                        btn.className = 'w-full text-left p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent';
+                        btn.className = 'w-full text-left p-3 sm:p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent text-sm sm:text-base leading-relaxed';
                         btn.textContent = opt;
                         btn.onclick = () => checkAnswer(opt, q.CorrectAnswer, q.Explanation);
                         optionsDiv.appendChild(btn);
                     });
                 }
                 
+                // Flag button handler
+                document.getElementById('flagBtn').onclick = () => toggleFlag();
+                
                 // Skip button handler
                 document.getElementById('skipBtn').onclick = () => skipQuestion();
             }
             
-            function showPracticalAnswer(q) {
-                answered = true;
-                totalAnswered++; // Count as answered even though we're just showing the solution
-                
+            function toggleFlag() {
+                if (flaggedIndices.has(currentQ)) {
+                    flaggedIndices.delete(currentQ);
+                } else {
+                    flaggedIndices.add(currentQ);
+                }
+                document.getElementById('flagCount').textContent = flaggedIndices.size;
+                renderQuestion(); // Re-render to update flag badge
+            }
+            
+            async function validatePracticalAnswer(q) {
                 const userAnswer = document.getElementById('practicalAnswer').value.trim();
-                const fileInput = document.getElementById('screenshotUpload');
-                const hasFile = fileInput.files.length > 0;
                 
-                let userSubmission = 'No answer provided';
-                if (userAnswer) {
-                    userSubmission = userAnswer;
-                } else if (hasFile) {
-                    userSubmission = `Screenshot: ${fileInput.files[0].name}`;
+                if (!userAnswer) {
+                    alert('Please provide an answer first!');
+                    return;
                 }
                 
-                const feedback = document.getElementById('feedback');
-                feedback.className = 'mt-6 p-4 rounded-lg bg-purple-900/30 border-2 border-purple-400';
-                feedback.innerHTML = '';
+                answered = true;
+                totalAnswered++;
                 
-                const title = document.createElement('p');
-                title.className = 'font-bold text-lg mb-3 text-purple-300';
-                title.textContent = '💡 Practical Question - Solution';
-                feedback.appendChild(title);
+                const submitBtn = document.getElementById('submitPractical');
+                const validateText = document.getElementById('validateText');
+                submitBtn.disabled = true;
+                validateText.textContent = '🤖 AI Validating...';
                 
-                if (userAnswer || hasFile) {
-                    const submission = document.createElement('div');
-                    submission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
-                    submission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your submission:</p><p class="font-mono text-sm">${escapeHtml(userSubmission)}</p>`;
-                    feedback.appendChild(submission);
+                try {
+                    // Call Bedrock to validate answer
+                    const validation = await callBedrockValidation(q.QuestionText, userAnswer, q.CorrectAnswer, q.Explanation);
+                    
+                    const feedback = document.getElementById('feedback');
+                    feedback.className = `mt-6 p-4 rounded-lg ${validation.correct ? 'bg-green-900/30 border-2 border-green-400' : 'bg-orange-900/30 border-2 border-orange-400'}`;
+                    feedback.innerHTML = '';
+                    
+                    if (validation.correct) score++;
+                    
+                    const title = document.createElement('p');
+                    title.className = 'font-bold text-lg mb-3';
+                    title.textContent = validation.correct ? '✅ AI Verified: Correct!' : '🤔 AI Review';
+                    feedback.appendChild(title);
+                    
+                    const userSubmission = document.createElement('div');
+                    userSubmission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
+                    userSubmission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your answer:</p><p class="font-mono text-sm">${userAnswer}</p>`;
+                    feedback.appendChild(userSubmission);
+                    
+                    const aiFeedback = document.createElement('div');
+                    aiFeedback.className = 'mb-3 p-3 bg-purple-900/20 rounded border border-purple-500/30';
+                    aiFeedback.innerHTML = `<p class="text-sm"><strong>AI Feedback:</strong> ${validation.feedback}</p>`;
+                    feedback.appendChild(aiFeedback);
+                    
+                    const correctAnswer = document.createElement('div');
+                    correctAnswer.className = 'mb-3';
+                    correctAnswer.innerHTML = '<p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>';
+                    const answerText = document.createElement('p');
+                    answerText.className = 'font-mono text-sm bg-slate-800/50 p-3 rounded border border-green-500/30';
+                    answerText.textContent = q.CorrectAnswer;
+                    correctAnswer.appendChild(answerText);
+                    feedback.appendChild(correctAnswer);
+                    
+                    const exp = document.createElement('p');
+                    exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600';
+                    exp.textContent = q.Explanation;
+                    feedback.appendChild(exp);
+                    
+                } catch (error) {
+                    console.error('AI validation error:', error);
+                    // Fall back to showing correct answer without AI
+                    showPracticalAnswer(q, userAnswer);
                 }
                 
-                const correctAnswer = document.createElement('div');
-                correctAnswer.className = 'mb-3';
-                correctAnswer.innerHTML = '<p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>';
-                const answerText = document.createElement('p');
-                answerText.className = 'font-mono text-sm bg-slate-800/50 p-3 rounded border border-green-500/30';
-                answerText.textContent = q.CorrectAnswer;
-                correctAnswer.appendChild(answerText);
-                feedback.appendChild(correctAnswer);
-                
-                const exp = document.createElement('p');
-                exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600 text-slate-300';
-                exp.innerHTML = '<strong>Explanation:</strong> ' + escapeHtml(q.Explanation);
-                feedback.appendChild(exp);
-                
-                // Hide submit button, show skip/next
-                document.getElementById('submitPractical').classList.add('hidden');
+                submitBtn.classList.add('hidden');
                 document.getElementById('skipBtn').classList.add('hidden');
                 document.getElementById('nextBtn').classList.remove('hidden');
                 document.getElementById('nextBtn').onclick = () => {
                     currentQ++;
-                    if (currentQ < shuffled.length) {
+                    if (currentQ < questions.length) {
                         renderQuestion();
                     } else {
                         showResults();
@@ -264,10 +253,45 @@
                 };
             }
             
+            async function callBedrockValidation(question, userAnswer, correctAnswer, explanation) {
+                // TODO: This will call your Lambda function that calls Bedrock
+                // For now, return mock validation
+                
+                // Simulated AI response (you'll replace this with actual Bedrock call)
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        const isClose = userAnswer.toLowerCase().includes(correctAnswer.toLowerCase().substring(0, 10));
+                        resolve({
+                            correct: isClose,
+                            feedback: isClose 
+                                ? "Your answer matches the expected format and content!" 
+                                : "Your answer is partially correct but missing some key elements."
+                        });
+                    }, 1500);
+                });
+            }
+            
+            function showPracticalAnswer(q, userAnswer) {
+                // Fallback if AI validation fails
+                const feedback = document.getElementById('feedback');
+                feedback.className = 'mt-6 p-4 rounded-lg bg-purple-900/30 border-2 border-purple-400';
+                feedback.innerHTML = `
+                    <p class="font-bold text-lg mb-3">💡 Solution</p>
+                    <div class="mb-4 p-3 bg-slate-800/50 rounded">
+                        <p class="text-sm text-slate-400 mb-1">Your answer:</p>
+                        <p class="font-mono text-sm">${userAnswer}</p>
+                    </div>
+                    <div class="mb-3">
+                        <p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>
+                        <p class="font-mono text-sm bg-slate-800/50 p-3 rounded">${q.CorrectAnswer}</p>
+                    </div>
+                    <p class="text-sm italic mt-3 pt-3 border-t border-slate-600">${q.Explanation}</p>
+                `;
+            }
+            
             function skipQuestion() {
-                // Don't count as answered, just move to next
                 currentQ++;
-                if (currentQ < shuffled.length) {
+                if (currentQ < questions.length) {
                     renderQuestion();
                 } else {
                     showResults();
@@ -310,7 +334,8 @@
                 if (!isCorrect) {
                     const correctAnswer = document.createElement('p');
                     correctAnswer.className = 'mb-2';
-                    correctAnswer.innerHTML = 'The correct answer was: <strong>' + escapeHtml(correct) + '</strong>';
+                    correctAnswer.innerHTML = 'The correct answer was: <strong></strong>';
+                    correctAnswer.querySelector('strong').textContent = correct;
                     feedback.appendChild(correctAnswer);
                 }
                 
@@ -319,13 +344,12 @@
                 exp.textContent = explanation;
                 feedback.appendChild(exp);
                 
-                // Hide skip button, show next button
                 document.getElementById('skipBtn').classList.add('hidden');
                 const nextBtn = document.getElementById('nextBtn');
                 nextBtn.classList.remove('hidden');
                 nextBtn.onclick = () => {
                     currentQ++;
-                    if (currentQ < shuffled.length) {
+                    if (currentQ < questions.length) {
                         renderQuestion();
                     } else {
                         showResults();
@@ -334,43 +358,59 @@
             }
             
             function showResults() {
-                const percentage = Math.round((score / shuffled.length) * 100);
+                const percentage = Math.round((score / totalAnswered) * 100);
+                const passed = percentage >= 72; // AWS passing score
+                
                 let message = '';
-                if (percentage >= 80) message = 'Excellent! You\'re ready! 🎉';
-                else if (percentage >= 60) message = 'Good job! Keep practicing. 💪';
+                if (passed) message = 'Congratulations! You passed! 🎉';
+                else if (percentage >= 60) message = 'Almost there! Keep practicing. 💪';
                 else message = 'Keep studying. You\'ll get there! 📚';
                 
                 container.innerHTML = `
                     <div class="text-center py-12">
                         <h2 class="text-3xl font-bold mb-4">Exam Complete!</h2>
-                        <div class="text-6xl font-bold text-orange-500 my-6">${score} / ${shuffled.length}</div>
-                        <p class="text-2xl text-slate-300 mb-4">${percentage}%</p>
-                        <p class="text-lg text-slate-400 mb-8">${message}</p>
-                        <button onclick="location.reload()" class="bg-slate-700 hover:bg-slate-600 px-8 py-3 rounded-lg font-semibold">
-                            Try Again
-                        </button>
+                        <div class="text-6xl font-bold ${passed ? 'text-green-500' : 'text-orange-500'} my-6">${score} / ${totalAnswered}</div>
+                        <p class="text-2xl text-slate-300 mb-2">${percentage}%</p>
+                        <p class="text-lg ${passed ? 'text-green-400' : 'text-slate-400'} mb-8">${message}</p>
+                        
+                        ${flaggedIndices.size > 0 ? `
+                            <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+                                <p class="text-yellow-300">📌 You flagged ${flaggedIndices.size} question${flaggedIndices.size > 1 ? 's' : ''} for review</p>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                            <button onclick="location.reload()" class="bg-orange-600 hover:bg-orange-700 px-8 py-3 rounded-lg font-semibold">
+                                🔄 New Exam
+                            </button>
+                            ${flaggedIndices.size > 0 ? `
+                                <button onclick="showFlaggedQuestions()" class="bg-yellow-700 hover:bg-yellow-600 px-8 py-3 rounded-lg font-semibold">
+                                    📌 Review Flagged
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 `;
             }
-            
-            // Helper function to escape HTML
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-                    return c;
-                });
+        }
+
+        function showFlaggedQuestions() {
+            if (flaggedIndices.size === 0) {
+                alert('No questions flagged yet!');
+                return;
             }
             
-            renderQuestion();
+            const flaggedQs = Array.from(flaggedIndices).map(i => allQuestions[i]);
+            document.getElementById('quiz-content').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('loading').innerHTML = '<p>Loading flagged questions...</p>';
+            
+            setTimeout(() => {
+                displayQuestions(flaggedQs);
+            }, 500);
         }
 
         // Initialize
-     //   checkGenerator();
         fetchQuestions();
     </script>
 </body>
