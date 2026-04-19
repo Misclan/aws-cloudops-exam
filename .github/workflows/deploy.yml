@@ -3,23 +3,40 @@ name: Deploy Serverless Exam App
 on:
   push:
     branches:
-      - main  # This triggers the robot every time you push to main
+      - main  # Triggers on every push to the main branch
 
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: aws-actions/setup-sam@v2
+
+      - name: Setup SAM
+        uses: aws-actions/setup-sam@v2
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-      - uses: aws-actions/configure-aws-credentials@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: af-south-1 # Hardcoded to match your project region
 
-      - run: sam build
-      - run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+      # 1. Sync the Frontend (HTML) to S3
+      - name: Sync HTML to S3
+        run: |
+          aws s3 sync . s3://ken-exam-app-website-v3 --exclude "*" --include "index.html" --delete
+        # This replaces the placeholder with your actual bucket name
+
+      # 2. Build and Deploy the Backend (Lambda/API)
+      - name: SAM Build
+        run: sam build
+
+      - name: SAM Deploy
+        run: |
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --stack-name exam-app-backend
+        # Deploys your app.py changes automatically

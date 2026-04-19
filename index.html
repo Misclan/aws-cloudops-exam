@@ -12,14 +12,14 @@
         <h1 class="text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
         <p class="text-slate-400">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
         
-        <!-- Generator Button (only shows if local API is running) -->
+        <!-- Generator Button (only shows if local API is running) 
         <div id="generator-controls" class="mt-4 hidden">
             <button onclick="generateNewQuestions()" id="genBtn" 
                     class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition">
                 ✨ Generate 5 New Questions with Ollama
             </button>
             <p class="text-xs text-slate-500 mt-2">Requires Ollama running locally</p>
-        </div>
+        </div> -->
     </header>
 
     <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700">
@@ -32,7 +32,7 @@
 
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
-        const GENERATOR_API = 'http://localhost:5000';  // Your local Ollama API
+        /*const GENERATOR_API = 'http://localhost:5000';  // Your local Ollama API
 
         // Check if local generator is available
         async function checkGenerator() {
@@ -71,6 +71,7 @@
                 btn.disabled = false;
             }
         }
+            */
 
         async function fetchQuestions() {
             try {
@@ -369,7 +370,7 @@
         }
 
         // Initialize
-        checkGenerator();
+     //   checkGenerator();
         fetchQuestions();
     </script>
 </body>
