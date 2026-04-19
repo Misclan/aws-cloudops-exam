@@ -11,6 +11,15 @@
     <header class="text-center mb-10">
         <h1 class="text-4xl font-bold text-orange-500 mb-2">CloudOps Exam Pro</h1>
         <p class="text-slate-400">Powered by AWS Lambda & DynamoDB (af-south-1)</p>
+        
+        <!-- Generator Button (only shows if local API is running) -->
+        <div id="generator-controls" class="mt-4 hidden">
+            <button onclick="generateNewQuestions()" id="genBtn" 
+                    class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded-lg font-semibold transition">
+                ✨ Generate 5 New Questions with Ollama
+            </button>
+            <p class="text-xs text-slate-500 mt-2">Requires Ollama running locally</p>
+        </div>
     </header>
 
     <main id="quiz-container" class="max-w-2xl w-full bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700">
@@ -23,6 +32,45 @@
 
     <script>
         const API_URL = 'https://04v9z7h7zb.execute-api.af-south-1.amazonaws.com/questions';
+        const GENERATOR_API = 'http://localhost:5000';  // Your local Ollama API
+
+        // Check if local generator is available
+        async function checkGenerator() {
+            try {
+                const response = await fetch(`${GENERATOR_API}/status`);
+                if (response.ok) {
+                    document.getElementById('generator-controls').classList.remove('hidden');
+                }
+            } catch (e) {
+                // Local API not running, hide button
+            }
+        }
+
+        // Generate new questions using local Ollama
+        async function generateNewQuestions() {
+            const btn = document.getElementById('genBtn');
+            btn.disabled = true;
+            btn.textContent = '🤖 Generating with Ollama...';
+            
+            try {
+                const response = await fetch(`${GENERATOR_API}/generate?count=5`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    btn.textContent = `✅ Generated ${result.generated} questions!`;
+                    setTimeout(() => {
+                        location.reload();  // Refresh to show new questions
+                    }, 1500);
+                } else {
+                    btn.textContent = '❌ Generation failed';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Generation error:', error);
+                btn.textContent = '❌ Error - Is Ollama running?';
+                btn.disabled = false;
+            }
+        }
 
         async function fetchQuestions() {
             try {
@@ -31,6 +79,7 @@
                 let data = await response.json();
                 
                 console.log('Response type:', typeof data);
+                console.log('Raw data:', data);
                 
                 // Handle double-stringified JSON
                 while (typeof data === 'string') {
@@ -39,6 +88,13 @@
                 }
                 
                 console.log('Loaded', data.length, 'questions');
+                
+                // Log first question structure
+                if (data.length > 0) {
+                    console.log('Sample question:', data[0]);
+                    console.log('Has Options?', !!data[0].Options);
+                }
+                
                 displayQuestions(data);
             } catch (error) {
                 console.error('Fetch error:', error);
@@ -57,49 +113,174 @@
             const shuffled = questions.sort(() => 0.5 - Math.random());
             let currentQ = 0;
             let score = 0;
+            let totalAnswered = 0;
             let answered = false;
             
             function renderQuestion() {
                 const q = shuffled[currentQ];
                 answered = false;
                 
+                const isPractical = !q.Options || !Array.isArray(q.Options) || q.Options.length === 0;
+                
                 container.innerHTML = `
                     <div class="mb-8">
                         <div class="flex justify-between items-center mb-4 pb-4 border-b border-slate-700">
-                            <span class="text-orange-500 font-bold">Question ${currentQ + 1} of ${shuffled.length}</span>
-                            <span class="text-slate-400">Score: ${score}/${currentQ || 1}</span>
+                            <div>
+                                <span class="text-orange-500 font-bold">Question ${currentQ + 1} of ${shuffled.length}</span>
+                                <span class="ml-3 px-2 py-1 text-xs rounded ${isPractical ? 'bg-purple-600/20 text-purple-300 border border-purple-500' : 'bg-green-600/20 text-green-300 border border-green-500'}">
+                                    ${isPractical ? 'PRACTICAL' : 'MULTIPLE CHOICE'}
+                                </span>
+                            </div>
+                            <span class="text-slate-400">Score: ${score}/${totalAnswered || 1}</span>
                         </div>
                         <h3 class="text-xl font-semibold mb-6" id="qtext"></h3>
-                        <div id="options" class="space-y-3 mb-6"></div>
+                        <div id="question-content"></div>
                         <div id="feedback" class="hidden mt-6 p-4 rounded-lg"></div>
-                        <button id="nextBtn" class="hidden w-full mt-6 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition">
-                            ${currentQ < shuffled.length - 1 ? 'Next Question' : 'Show Results'}
-                        </button>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex gap-3 mt-6">
+                            <button id="skipBtn" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                                ⏭️ Skip Question
+                            </button>
+                            <button id="nextBtn" class="hidden flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                                ${currentQ < shuffled.length - 1 ? 'Next Question' : 'Show Results'}
+                            </button>
+                        </div>
                     </div>
                 `;
                 
-                // Set question text safely
                 document.getElementById('qtext').textContent = q.QuestionText;
                 
-                // Create option buttons
-                const optionsDiv = document.getElementById('options');
-                q.Options.forEach((opt, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = 'w-full text-left p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent';
-                    btn.textContent = opt;
-                    btn.onclick = () => checkAnswer(opt, q.CorrectAnswer, q.Explanation);
-                    optionsDiv.appendChild(btn);
-                });
+                const contentDiv = document.getElementById('question-content');
+                
+                if (isPractical) {
+                    // Practical question UI
+                    contentDiv.innerHTML = `
+                        <div class="space-y-4">
+                            <div class="bg-purple-900/20 border border-purple-500/30 rounded-lg p-4 mb-4">
+                                <p class="text-sm text-purple-200">
+                                    💡 <strong>Practical Question:</strong> Provide the answer in the text box below, or upload a screenshot of your solution.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold mb-2">Your Answer (ARN, CLI command, or text):</label>
+                                <textarea id="practicalAnswer" 
+                                          class="w-full p-4 bg-slate-700 border-2 border-slate-600 rounded-lg text-white font-mono text-sm resize-y"
+                                          rows="3"
+                                          placeholder="e.g., arn:aws:iam::123456789012:role/MyRole or aws s3 mb s3://my-bucket"></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold mb-2">Or Upload Screenshot (optional):</label>
+                                <input type="file" id="screenshotUpload" accept="image/*"
+                                       class="w-full p-3 bg-slate-700 border-2 border-slate-600 rounded-lg text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                                <p class="text-xs text-slate-500 mt-2">Accepted: PNG, JPG, JPEG</p>
+                            </div>
+                            
+                            <button id="submitPractical" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                                ✓ Submit & See Answer
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('submitPractical').onclick = () => showPracticalAnswer(q);
+                    
+                } else {
+                    // Multiple choice UI
+                    contentDiv.innerHTML = '<div id="options" class="space-y-3"></div>';
+                    
+                    const optionsDiv = document.getElementById('options');
+                    q.Options.forEach((opt, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'w-full text-left p-4 rounded bg-slate-700 hover:bg-slate-600 transition border-2 border-transparent';
+                        btn.textContent = opt;
+                        btn.onclick = () => checkAnswer(opt, q.CorrectAnswer, q.Explanation);
+                        optionsDiv.appendChild(btn);
+                    });
+                }
+                
+                // Skip button handler
+                document.getElementById('skipBtn').onclick = () => skipQuestion();
+            }
+            
+            function showPracticalAnswer(q) {
+                answered = true;
+                totalAnswered++; // Count as answered even though we're just showing the solution
+                
+                const userAnswer = document.getElementById('practicalAnswer').value.trim();
+                const fileInput = document.getElementById('screenshotUpload');
+                const hasFile = fileInput.files.length > 0;
+                
+                let userSubmission = 'No answer provided';
+                if (userAnswer) {
+                    userSubmission = userAnswer;
+                } else if (hasFile) {
+                    userSubmission = `Screenshot: ${fileInput.files[0].name}`;
+                }
+                
+                const feedback = document.getElementById('feedback');
+                feedback.className = 'mt-6 p-4 rounded-lg bg-purple-900/30 border-2 border-purple-400';
+                feedback.innerHTML = '';
+                
+                const title = document.createElement('p');
+                title.className = 'font-bold text-lg mb-3 text-purple-300';
+                title.textContent = '💡 Practical Question - Solution';
+                feedback.appendChild(title);
+                
+                if (userAnswer || hasFile) {
+                    const submission = document.createElement('div');
+                    submission.className = 'mb-4 p-3 bg-slate-800/50 rounded border border-slate-600';
+                    submission.innerHTML = `<p class="text-sm text-slate-400 mb-1">Your submission:</p><p class="font-mono text-sm">${userSubmission}</p>`;
+                    feedback.appendChild(submission);
+                }
+                
+                const correctAnswer = document.createElement('div');
+                correctAnswer.className = 'mb-3';
+                correctAnswer.innerHTML = '<p class="font-semibold mb-2 text-green-300">✓ Expected Answer:</p>';
+                const answerText = document.createElement('p');
+                answerText.className = 'font-mono text-sm bg-slate-800/50 p-3 rounded border border-green-500/30';
+                answerText.textContent = q.CorrectAnswer;
+                correctAnswer.appendChild(answerText);
+                feedback.appendChild(correctAnswer);
+                
+                const exp = document.createElement('p');
+                exp.className = 'text-sm italic mt-3 pt-3 border-t border-slate-600 text-slate-300';
+                exp.innerHTML = '<strong>Explanation:</strong> ' + q.Explanation;
+                feedback.appendChild(exp);
+                
+                // Hide submit button, show skip/next
+                document.getElementById('submitPractical').classList.add('hidden');
+                document.getElementById('skipBtn').classList.add('hidden');
+                document.getElementById('nextBtn').classList.remove('hidden');
+                document.getElementById('nextBtn').onclick = () => {
+                    currentQ++;
+                    if (currentQ < shuffled.length) {
+                        renderQuestion();
+                    } else {
+                        showResults();
+                    }
+                };
+            }
+            
+            function skipQuestion() {
+                // Don't count as answered, just move to next
+                currentQ++;
+                if (currentQ < shuffled.length) {
+                    renderQuestion();
+                } else {
+                    showResults();
+                }
             }
             
             function checkAnswer(selected, correct, explanation) {
                 if (answered) return;
                 answered = true;
+                totalAnswered++;
                 
                 const isCorrect = selected === correct;
                 if (isCorrect) score++;
                 
-                // Update all buttons
                 const buttons = document.querySelectorAll('#options button');
                 buttons.forEach(btn => {
                     btn.disabled = true;
@@ -116,9 +297,9 @@
                     }
                 });
                 
-                // Show feedback
                 const feedback = document.getElementById('feedback');
                 feedback.className = `mt-6 p-4 rounded-lg ${isCorrect ? 'bg-green-900/30 border-2 border-green-400' : 'bg-red-900/30 border-2 border-red-400'}`;
+                feedback.innerHTML = '';
                 
                 const feedbackTitle = document.createElement('p');
                 feedbackTitle.className = 'font-bold text-lg mb-2';
@@ -138,13 +319,19 @@
                 exp.textContent = explanation;
                 feedback.appendChild(exp);
                 
-                // Show next button
+                // Hide skip button, show next button
+                document.getElementById('skipBtn').classList.add('hidden');
                 const nextBtn = document.getElementById('nextBtn');
                 nextBtn.classList.remove('hidden');
                 nextBtn.onclick = () => {
                     currentQ++;
                     if (currentQ < shuffled.length) {
                         renderQuestion();
+                    } else {
+                        showResults();
+                    }
+                };
+            }
                     } else {
                         showResults();
                     }
@@ -174,6 +361,8 @@
             renderQuestion();
         }
 
+        // Initialize
+        checkGenerator();
         fetchQuestions();
     </script>
 </body>
